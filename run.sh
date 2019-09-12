@@ -4,17 +4,52 @@ echo ""
 echo "--------- Step 0: Initialzation ---------"
 echo ""
 
+##############################################################################################################
+
 source env.properties
 
 work_path=`pwd`
 
 echo ">>> current work path is $work_path"
 
+# verify if required component is installed
+function isinstalled {
+  if yum list installed "$@" >/dev/null 2>&1; then
+    true
+  else
+    false
+  fi
+}
+
+# verify curl
+package="curl"
+if ! isinstalled $package; then 
+  echo ">>> $package is not installed, script will install $package for you..."
+  yum install -y $package
+fi;
+
+# verify git
+package="git"
+if ! isinstalled $package; then 
+  echo ">>> $package is not installed, script will install $package for you..."
+  yum install -y $package
+fi;
+
+# verify docker
+package="docker"
+if ! isinstalled $package; then 
+  echo ">>> $package is not installed, script will install $package for you..."
+  yum install -y $package
+fi;
+
+##############################################################################################################
+
 cd $work_path/docker-xe/
 
 if [ $use_exist_media = "Y" ]; then
   if [ ! -f files/$apex_file_name ]; then
-    curl -o files/$apex_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$apex_file_name
+    curl -o files/$apex_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$apex_file_name
+    #curl -o files/$apex_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$apex_file_name
   fi;
 else
   echo ">>> cannot find $apex_file_name in $work_path/docker-xe/files/"
@@ -25,7 +60,8 @@ fi;
 
 if [ $use_exist_media = "Y" ]; then
   if [ ! -f files/$ords_file_name ]; then
-    curl -o files/$ords_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$ords_file_name
+    curl -o files/$ords_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$ords_file_name
+    #curl -o files/$ords_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$ords_file_name
   fi;
 else
   echo ">>> cannot find $ords_file_name in $work_path/docker-ords/files/"
@@ -33,21 +69,21 @@ else
 fi;
 
 
-if [ $use_exist_media = "Y" ]; then
-  if [ ! -f files/$db_file_name ]; then
-    curl -o files/$db_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$db_file_name
-  fi;
-else
-  echo ">>> cannot find $db_file_name in $work_path/docker-xe/files/"
-  pre_check="N"
-fi;
+#if [ $use_exist_media = "Y" ]; then
+#  if [ ! -f files/$db_file_name ]; then
+#    curl -o files/$db_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$db_file_name
+#  fi;
+#else
+#  echo ">>> cannot find $db_file_name in $work_path/docker-xe/files/"
+#  pre_check="N"
+#fi;
 
 
 if [ $pre_check = "N" ]; then
   exit;
 fi;
 
-
+##############################################################################################################
 
 echo ">>> unzip apex installation media ..."
 mkdir ../apex
@@ -86,6 +122,7 @@ while : ; do
     sleep 30
 done
 
+##############################################################################################################
 
 echo ""
 echo "--------- Step 3: install apex on xe docker image ---------"
@@ -94,6 +131,7 @@ echo ""
 docker exec -it oracle-xe bash -c "source /home/oracle/.bashrc && cd /tmp/apex && chmod +x apex-install.sh && . apex-install.sh $db_sys_pwd $apex_admin_pwd $db_pdb_name $apex_admin_email"
 
 
+##############################################################################################################
 
 echo ""
 echo "--------- Step 4: compile oracle ords docker image ---------"
@@ -101,6 +139,9 @@ echo ""
 cd ../docker-ords/
 
 docker build -t oracle-ords:$ords_version .
+
+
+##############################################################################################################
 
 echo ""
 echo "--------- Step 5: startup oracle ords docker image ---------"
@@ -124,6 +165,5 @@ cd $work_path
 
 echo ""
 echo "--------- All installations are done, enjoy it! ---------"
-echo ""
 
-
+##############################################################################################################
