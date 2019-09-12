@@ -20,11 +20,18 @@ apex_admin_email=${12:-'wfgdlut@gmail.com'}
 ords_file_name=${13:-'ords-19.2.0.199.1647.zip'}
 ords_version=${14:-'19.2.0'}
 ords_port=${15:-32513}
+<<<<<<< HEAD
 
 url_check=""
 docker_prefix='rapid-apex'
 oss_url2='https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/'
 oss_url='https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/'
+=======
+url_check=""
+oss_url='https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/'
+oss_url2='https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/'
+oss_url3='https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/'
+>>>>>>> Initial commit
 
 echo ">>> print all of input parameters..."
 echo $*
@@ -138,8 +145,13 @@ echo "--------- Step 2: compile oracle xe docker image ---------"
 echo ""
 
 
+<<<<<<< HEAD
 echo ">>> docker image $docker_prefix/oracle-xe:$db_version does not exist, begin to build docker image..."
     docker build -t $docker_prefix/oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd .
+=======
+echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version does not exist, begin to build docker image..."
+    docker build -t registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd .
+>>>>>>> Initial commit
 
 
 echo ""
@@ -152,7 +164,11 @@ docker run -d \
   --volume $work_path/oradata:/opt/oracle/oradata \
   --volume $work_path/apex:/tmp/apex \
   --network=$docker_network \
+<<<<<<< HEAD
   $docker_prefix/oracle-xe:$db_version
+=======
+  registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version
+>>>>>>> Initial commit
 
 
 # wait until database configuration is done
@@ -182,11 +198,19 @@ echo ""
 
 cd $work_path/docker-ords/
 
+<<<<<<< HEAD
 if [[ "$(docker images -q $docker_prefix/oracle-ords:$ords_version 2> /dev/null)" == "" ]]; then
   echo ">>> docker image $docker_prefix/oracle-ords:$ords_version does not exist, begin to build docker image..."
   docker build -t $docker_prefix/oracle-ords:$ords_version .
 else
   echo ">>> docker image $docker_prefix/oracle-ords:$ords_version is found, skip compile step and go on..."
+=======
+if [[ "$(docker images -q registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version 2> /dev/null)" == "" ]]; then
+  echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version does not exist, begin to build docker image..."
+  docker build -t registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version .
+else
+  echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version is found, skip compile step and go on..."
+>>>>>>> Initial commit
 fi;
 
 
@@ -210,7 +234,11 @@ docker run -d -it --network=$docker_network \
   --volume $work_path/oracle-ords/$ords_version/config:/opt/ords \
   --volume $work_path/apex/images:/ords/apex-images \
   -p $ords_port:8080 \
+<<<<<<< HEAD
   $docker_prefix/oracle-ords:$ords_version
+=======
+  registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version
+>>>>>>> Initial commit
 
 cd $work_path
 
