@@ -23,10 +23,12 @@ function isinstalled {
 
 # verify docker
 package="docker"
-if ! isinstalled $package; then 
+if [ -x "$(command -v $package)" ]; then
+  echo "docker is installed, continue..."
+else
   echo ">>> $package is not installed, please make sure docker service is installed and running..."
   exit;
-fi;
+fi
 
 
 # verify curl
@@ -36,15 +38,12 @@ if ! isinstalled $package; then
   yum install -y $package
 fi;
 
-# verify git
-package="git"
-if ! isinstalled $package; then 
-  echo ">>> $package is not installed, script will install $package for you..."
-  yum install -y $package
-fi;
 
 
-git clone git@github.com:wfg2513148/xe-apex-ords-rapid-install.git
+curl -o xe-apex-ords-rapid-install.zip https://codeload.github.com/wfg2513148/xe-apex-ords-rapid-install/zip/master
+unzip xe-apex-ords-rapid-install.zip
+rm -Rf xe-apex-ords-rapid-install.zip
+
 work_path="xe-apex-ords-rapid-install"
 
 
@@ -60,8 +59,10 @@ if [ $use_exist_media = "Y" ]; then
     #curl -o files/$apex_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$apex_file_name
   fi;
 else
-  echo ">>> cannot find $apex_file_name in $work_path/docker-xe/files/"
-  pre_check="N"
+  if [ ! -f files/$apex_file_name ]; then
+    echo ">>> cannot find $apex_file_name in $work_path/docker-xe/files/"
+    pre_check="N"
+  fi;
 fi;
 
 
@@ -72,8 +73,10 @@ if [ $use_exist_media = "Y" ]; then
     #curl -o files/$ords_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$ords_file_name
   fi;
 else
-  echo ">>> cannot find $ords_file_name in $work_path/docker-ords/files/"
-  pre_check="N"
+  if [ ! -f files/$ords_file_name ]; then
+    echo ">>> cannot find $ords_file_name in $work_path/docker-ords/files/"
+    pre_check="N"
+  fi;
 fi;
 
 
@@ -82,14 +85,19 @@ fi;
 #    curl -o files/$db_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$db_file_name
 #  fi;
 #else
-#  echo ">>> cannot find $db_file_name in $work_path/docker-xe/files/"
-#  pre_check="N"
+#  if [ ! -f files/$db_file_name ]; then
+#    echo ">>> cannot find $db_file_name in $work_path/docker-xe/files/"
+#    pre_check="N"
+#  fi;
 #fi;
 
 
 if [ $pre_check = "N" ]; then
   exit;
 fi;
+
+
+exit;
 
 ##############################################################################################################
 
