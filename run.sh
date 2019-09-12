@@ -24,7 +24,7 @@ function isinstalled {
 # verify docker
 package="docker"
 if [ -x "$(command -v $package)" ]; then
-  echo "docker is installed, continue..."
+  echo ">>> docker is installed, continue..."
 else
   echo ">>> $package is not installed, please make sure docker service is installed and running..."
   exit;
@@ -41,19 +41,17 @@ fi;
 
 
 curl -o xe-apex-ords-rapid-install.zip https://codeload.github.com/wfg2513148/xe-apex-ords-rapid-install/zip/master
-unzip xe-apex-ords-rapid-install.zip
+unzip -oq xe-apex-ords-rapid-install.zip -d xe-apex-ords-rapid-install
 rm -Rf xe-apex-ords-rapid-install.zip
 
-work_path="xe-apex-ords-rapid-install"
+work_path=$work_path"/xe-apex-ords-rapid-install"
 
-
-exit;
 
 ##############################################################################################################
 
 cd $work_path/docker-xe/
 
-if [ $use_exist_media = "Y" ]; then
+if [ $use_exist_media="Y" ]; then
   if [ ! -f files/$apex_file_name ]; then
     curl -o files/$apex_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$apex_file_name
     #curl -o files/$apex_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$apex_file_name
@@ -67,7 +65,7 @@ fi;
 
 
 
-if [ $use_exist_media = "Y" ]; then
+if [ $use_exist_media="Y" ]; then
   if [ ! -f files/$ords_file_name ]; then
     curl -o files/$ords_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$ords_file_name
     #curl -o files/$ords_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$ords_file_name
@@ -80,7 +78,7 @@ else
 fi;
 
 
-#if [ $use_exist_media = "Y" ]; then
+#if [ $use_exist_media="Y" ]; then
 #  if [ ! -f files/$db_file_name ]; then
 #    curl -o files/$db_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$db_file_name
 #  fi;
