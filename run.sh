@@ -6,11 +6,53 @@ echo ""
 
 source env.properties
 
-cd ~/docker/oracle-xe-apex-ords/docker-xe/
+work_path=`pwd`
+
+echo ">>> current work path is $work_path"
+
+cd $work_path/docker-xe/
+
+if [ $use_exist_media = "Y" ]; then
+  if [ ! -f files/$apex_file_name ]; then
+    curl -o files/$apex_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$apex_file_name
+  fi;
+else
+  echo ">>> cannot find $apex_file_name in $work_path/docker-xe/files/"
+  pre_check="N"
+fi;
+
+
+
+if [ $use_exist_media = "Y" ]; then
+  if [ ! -f files/$ords_file_name ]; then
+    curl -o files/$ords_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$ords_file_name
+  fi;
+else
+  echo ">>> cannot find $ords_file_name in $work_path/docker-ords/files/"
+  pre_check="N"
+fi;
+
+
+if [ $use_exist_media = "Y" ]; then
+  if [ ! -f files/$db_file_name ]; then
+    curl -o files/$db_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$db_file_name
+  fi;
+else
+  echo ">>> cannot find $db_file_name in $work_path/docker-xe/files/"
+  pre_check="N"
+fi;
+
+
+if [ $pre_check = "N" ]; then
+  exit;
+fi;
+
+
 
 echo ">>> unzip apex installation media ..."
 mkdir ../apex
 cp scripts/apex-install*  ../apex/
+
 
 unzip -oq files/$apex_file_name -d ../ &
 
@@ -28,8 +70,8 @@ docker run -d \
   -p $db_port:1521 \
   -p $em_port:5500 \
   --name=oracle-xe \
-  --volume ~/docker/oracle-xe-apex-ords/oradata:/opt/oracle/oradata \
-  --volume ~/docker/oracle-xe-apex-ords/apex:/tmp/apex \
+  --volume $work_path/oradata:/opt/oracle/oradata \
+  --volume $work_path/apex:/tmp/apex \
   --network=$docker_network \
   oracle-xe:$db_version
 
@@ -73,12 +115,12 @@ docker run -d -it --network=oracle_network \
   -e APEX_REST_PASS=$apex_rest_pass \
   -e ORDS_PASS=$ords_pass \
   -e SYS_PASS=$db_sys_pwd \
-  --volume ~/docker/oracle-xe-apex-ords/oracle-ords/$ords_version/config:/opt/ords \
-  --volume ~/docker/oracle-xe-apex-ords/apex/images:/ords/apex-images \
+  --volume $work_path/oracle-ords/$ords_version/config:/opt/ords \
+  --volume $work_path/apex/images:/ords/apex-images \
   -p $ords_port:8080 \
   oracle-ords:$ords_version
 
-cd ~/docker/oracle-xe-apex-ords
+cd $work_path
 
 echo ""
 echo "--------- All installations are done, enjoy it! ---------"
