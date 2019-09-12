@@ -21,6 +21,14 @@ function isinstalled {
   fi
 }
 
+# verify docker
+package="docker"
+if ! isinstalled $package; then 
+  echo ">>> $package is not installed, please make sure docker service is installed and running..."
+  exit;
+fi;
+
+
 # verify curl
 package="curl"
 if ! isinstalled $package; then 
@@ -35,12 +43,12 @@ if ! isinstalled $package; then
   yum install -y $package
 fi;
 
-# verify docker
-package="docker"
-if ! isinstalled $package; then 
-  echo ">>> $package is not installed, script will install $package for you..."
-  yum install -y $package
-fi;
+
+git clone git@github.com:wfg2513148/xe-apex-ords-rapid-install.git
+work_path="xe-apex-ords-rapid-install"
+
+
+exit;
 
 ##############################################################################################################
 
