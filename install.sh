@@ -49,6 +49,11 @@ if [ $1="N" ]; then
   ords_port=$19
   ords_file_name=$20
   ords_version=$21
+  echo ">>> you choose custom install mode..."
+  exit;
+else
+  echo ">>> you choose quick install mode..."
+  exit;
 fi;
 
 ##############################################################################################################
