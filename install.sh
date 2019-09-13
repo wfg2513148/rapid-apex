@@ -1,54 +1,66 @@
 #!/bin/bash
 
-echo ""
-echo "--------- Step 0: Initialzation ---------"
-echo ""
 
 ##############################################################################################################
 
-source env.properties
+#source env.properties
+
+quick_install="Y" # $1
+use_exist_media="N" # $2
+docker_network=oracle_network # $3
+db_file_name=oracle-database-xe-18c-1.0-1.x86_64.rpm # $4
+db_version=18c # $5
+db_sys_pwd=oracle # $6
+db_port=31521 # $7
+db_pdb_name=XEPDB1 # $8
+em_port=35500 # $9
+apex_file_name=apex_19.1.zip # $10
+apex_version=19.1 # $11
+apex_admin_username=ADMIN # $12
+apex_admin_pwd='Welc0me@1' # $13
+apex_admin_email='wfgdlut@gmail.com' # $14
+apex_public_user_pass=oracle # $15
+apex_listener_pass=oracle # $16
+apex_rest_pass=oracle # $17
+ords_pass=oracle # $18
+ords_port=32513 # $19
+ords_file_name=ords-19.2.0.199.1647.zip # $20
+ords_version=19.2.0 # $21
+
+
+if [ $1="N" ]; then
+  use_exist_media=$2
+  docker_network=$3
+  db_file_name=$4
+  db_version=$5
+  db_sys_pwd=$6
+  db_port=$7
+  db_pdb_name=$8
+  em_port=$9
+  apex_file_name=$10
+  apex_version=$11
+  apex_admin_username=$12
+  apex_admin_pwd=$13
+  apex_admin_email=$14
+  apex_public_user_pass=$15
+  apex_listener_pass=$16
+  apex_rest_pass=$17
+  ords_pass=$18
+  ords_port=$19
+  ords_file_name=$20
+  ords_version=$21
+fi;
+
+##############################################################################################################
+
+echo ""
+echo "--------- Step 1: Download installation media ---------"
+echo ""
+
 
 work_path=`pwd`
 
 echo ">>> current work path is $work_path"
-
-# verify if required component is installed
-function isinstalled {
-  if yum list installed "$@" >/dev/null 2>&1; then
-    true
-  else
-    false
-  fi
-}
-
-# verify docker
-package="docker"
-if [ -x "$(command -v $package)" ]; then
-  echo ">>> docker is installed, continue..."
-else
-  echo ">>> $package is not installed, please make sure docker service is installed and running..."
-  exit;
-fi
-
-
-# verify curl
-package="curl"
-if ! isinstalled $package; then 
-  echo ">>> $package is not installed, script will install $package for you..."
-  yum install -y $package
-fi;
-
-
-
-curl -o xe-apex-ords-rapid-install.zip https://codeload.github.com/wfg2513148/xe-apex-ords-rapid-install/zip/master
-unzip -oq xe-apex-ords-rapid-install.zip
-rm -Rf xe-apex-ords-rapid-install.zip
-mv xe-apex-ords-rapid-install-master xe-apex-ords-rapid-install
-
-work_path=$work_path"/xe-apex-ords-rapid-install"
-
-
-##############################################################################################################
 
 cd $work_path/docker-xe/
 
@@ -96,8 +108,6 @@ if [ $pre_check="N" ]; then
 fi;
 
 
-exit;
-
 ##############################################################################################################
 
 echo ">>> unzip apex installation media ..."
@@ -108,14 +118,14 @@ cp scripts/apex-install*  ../apex/
 unzip -oq files/$apex_file_name -d ../ &
 
 echo ""
-echo "--------- Step 1: compile oracle xe docker image ---------"
+echo "--------- Step 2: compile oracle xe docker image ---------"
 echo ""
 
 
 docker build -t oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd .
 
 echo ""
-echo "--------- Step 2: startup oracle xe docker image ---------"
+echo "--------- Step 3: startup oracle xe docker image ---------"
 echo ""
 docker run -d \
   -p $db_port:1521 \
@@ -140,7 +150,7 @@ done
 ##############################################################################################################
 
 echo ""
-echo "--------- Step 3: install apex on xe docker image ---------"
+echo "--------- Step 4: install apex on xe docker image ---------"
 echo ""
 
 docker exec -it oracle-xe bash -c "source /home/oracle/.bashrc && cd /tmp/apex && chmod +x apex-install.sh && . apex-install.sh $db_sys_pwd $apex_admin_pwd $db_pdb_name $apex_admin_email"
@@ -149,7 +159,7 @@ docker exec -it oracle-xe bash -c "source /home/oracle/.bashrc && cd /tmp/apex &
 ##############################################################################################################
 
 echo ""
-echo "--------- Step 4: compile oracle ords docker image ---------"
+echo "--------- Step 5: compile oracle ords docker image ---------"
 echo ""
 cd ../docker-ords/
 
@@ -159,9 +169,9 @@ docker build -t oracle-ords:$ords_version .
 ##############################################################################################################
 
 echo ""
-echo "--------- Step 5: startup oracle ords docker image ---------"
+echo "--------- Step 6: startup oracle ords docker image ---------"
 echo ""
-docker run -d -it --network=oracle_network \
+docker run -d -it --network=$docker_network \
   -e TZ=Asia/Shanghai \
   -e DB_HOSTNAME=oracle-xe \
   -e DB_PORT=1521 \
