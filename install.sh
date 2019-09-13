@@ -8,7 +8,7 @@
 
 
 echo ">>> print all input parameters..."
-echo $*
+echo $1
 echo ">>> end of print all input parameters..."
 exit;
 
