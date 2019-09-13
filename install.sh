@@ -5,27 +5,7 @@
 
 #source env.properties
 
-quick_install="Y" # $1
-use_exist_media="N" # $2
-docker_network=oracle_network # $3
-db_file_name=oracle-database-xe-18c-1.0-1.x86_64.rpm # $4
-db_version=18c # $5
-db_sys_pwd=oracle # $6
-db_port=31521 # $7
-db_pdb_name=XEPDB1 # $8
-em_port=35500 # $9
-apex_file_name=apex_19.1.zip # $10
-apex_version=19.1 # $11
-apex_admin_username=ADMIN # $12
-apex_admin_pwd='Welc0me@1' # $13
-apex_admin_email='wfgdlut@gmail.com' # $14
-apex_public_user_pass=oracle # $15
-apex_listener_pass=oracle # $16
-apex_rest_pass=oracle # $17
-ords_pass=oracle # $18
-ords_port=32513 # $19
-ords_file_name=ords-19.2.0.199.1647.zip # $20
-ords_version=19.2.0 # $21
+
 
 echo ">>> print all input parameters..."
 echo $*
