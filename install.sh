@@ -27,6 +27,12 @@ ords_port=32513 # $19
 ords_file_name=ords-19.2.0.199.1647.zip # $20
 ords_version=19.2.0 # $21
 
+echo ">>> print all input parameters..."
+echo $*
+echo ">>> end of print all input parameters..."
+exit;
+
+
 
 if [ $1="N" ]; then
   use_exist_media=$2
@@ -55,10 +61,6 @@ else
 fi;
 
 
-echo ">>> print all input parameters..."
-echo $*
-echo ">>> end of print all input parameters..."
-exit;
 
 ##############################################################################################################
 
