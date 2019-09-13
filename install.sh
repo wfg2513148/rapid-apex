@@ -41,8 +41,9 @@ fi;
 
 
 curl -o xe-apex-ords-rapid-install.zip https://codeload.github.com/wfg2513148/xe-apex-ords-rapid-install/zip/master
-unzip -oq xe-apex-ords-rapid-install.zip -d xe-apex-ords-rapid-install
+unzip -oq xe-apex-ords-rapid-install.zip
 rm -Rf xe-apex-ords-rapid-install.zip
+mv xe-apex-ords-rapid-install-master xe-apex-ords-rapid-install
 
 work_path=$work_path"/xe-apex-ords-rapid-install"
 
@@ -90,7 +91,7 @@ fi;
 #fi;
 
 
-if [ $pre_check = "N" ]; then
+if [ $pre_check="N" ]; then
   exit;
 fi;
 
