@@ -172,8 +172,9 @@ echo "--------- Step 5: compile oracle ords docker image ---------"
 echo ""
 cd ../docker-ords/
 
-docker build -t oracle-ords:$ords_version .
-
+if [[ ! "$(docker images -q oracle-ords:$ords_version 2> /dev/null)" == "" ]]; then
+  docker build -t oracle-ords:$ords_version .
+fi;
 
 ##############################################################################################################
 
@@ -199,5 +200,5 @@ cd $work_path
 
 echo ""
 echo "--------- All installations are done, enjoy it! ---------"
-
+echo "--------- http:// ---------"
 ##############################################################################################################
