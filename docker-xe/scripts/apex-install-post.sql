@@ -58,8 +58,8 @@ begin
   apex_util.set_security_group_id( 10 );
   apex_util.create_user(
     p_user_name => 'admin',
-    p_email_address => '&1',
-    p_web_password => '&2',
+    p_email_address => '&admin_email',
+    p_web_password => '&admin_pass',
     p_developer_privs => 'ADMIN',
     p_change_password_on_first_use => 'N');
   apex_util.set_security_group_id( null );
