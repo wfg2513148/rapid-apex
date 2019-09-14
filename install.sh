@@ -27,15 +27,8 @@ ords_port=32513 # $19
 ords_file_name=ords-19.2.0.199.1647.zip # $20
 ords_version=19.2.0 # $21
 
-echo ">>> print all input parameters..."
-echo $*
-echo ">>> end of print all input parameters..."
-
-
-echo ">>> parameter1 (install.sh)="$1
 
 quick_install=$1
-echo ">>> quick_install (install.sh)="$1
 
 if [ "$quick_install" = "N" ]; then
   use_exist_media=$2
@@ -117,26 +110,28 @@ fi;
 #fi;
 
 
-if [ $pre_check='N' ]; then
+if [ "$pre_check" = "N" ]; then
   exit;
 fi;
 
 
 ##############################################################################################################
 
-echo ">>> unzip apex installation media ..."
-mkdir ../apex
-cp scripts/apex-install*  ../apex/
-
-
-unzip -oq files/$apex_file_name -d ../ &
+if [ ! -d ../apex ]; then
+  echo ">>> unzip apex installation media ..."
+  mkdir ../apex
+  cp scripts/apex-install*  ../apex/
+  unzip -oq files/$apex_file_name -d ../ &
+fi;
 
 echo ""
 echo "--------- Step 2: compile oracle xe docker image ---------"
 echo ""
 
+if [[ ! "$(docker images -q oracle-xe:$db_version 2> /dev/null)" == "" ]]; then
+  docker build -t oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd .
+fi
 
-docker build -t oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd .
 
 echo ""
 echo "--------- Step 3: startup oracle xe docker image ---------"
