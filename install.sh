@@ -89,11 +89,11 @@ fi;
 
 if [ $use_exist_media='Y' ]; then
   if [ ! -f files/$ords_file_name ]; then
-    curl -o ../../docker-ords/files/$ords_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$ords_file_name
+    curl -o ../docker-ords/files/$ords_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$ords_file_name
     #curl -o files/$ords_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$ords_file_name
   fi;
 else
-  if [ ! -f ../../docker-ords/files/$ords_file_name ]; then
+  if [ ! -f ../docker-ords/files/$ords_file_name ]; then
     echo ">>> cannot find $ords_file_name in $work_path/docker-ords/files/"
     pre_check="N"
   fi;
