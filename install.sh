@@ -99,17 +99,17 @@ else
   fi;
 fi;
 
-# cd $work_path/docker-xe/files
-#if [ "$use_exist_media"="Y" ]; then
-#  if [ ! -f $db_file_name ]; then
-#    curl -o $db_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$db_file_name
-#  fi;
-#else
-#  if [ ! -f $db_file_name ]; then
-#    echo ">>> cannot find $db_file_name in $work_path/docker-xe/files/"
-#    pre_check="N"
-#  fi;
-#fi;
+cd $work_path/docker-xe/files
+if [ "$use_exist_media"="Y" ]; then
+  if [ ! -f $db_file_name ]; then
+    curl -o $db_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$db_file_name
+  fi;
+else
+  if [ ! -f $db_file_name ]; then
+    echo ">>> cannot find $db_file_name in $work_path/docker-xe/files/"
+    pre_check="N"
+  fi;
+fi;
 
 
 if [ "$pre_check" = "N" ]; then
@@ -117,7 +117,7 @@ if [ "$pre_check" = "N" ]; then
   exit;
 fi;
 
-exit;
+
 
 ##############################################################################################################
 
@@ -125,7 +125,7 @@ cd $work_path/docker-xe
 
 if [ ! -d ../apex ]; then
   echo ">>> unzip apex installation media ..."
-  mkdir apex
+  mkdir ../apex
   cp scripts/apex-install*  ../apex/
   unzip -oq files/$apex_file_name -d ../ &
 fi;
@@ -176,7 +176,8 @@ docker exec -it oracle-xe bash -c "source /home/oracle/.bashrc && cd /tmp/apex &
 echo ""
 echo "--------- Step 5: compile oracle ords docker image ---------"
 echo ""
-cd ../docker-ords/
+
+cd $work_path/docker-ords/
 
 if [[ ! "$(docker images -q oracle-ords:$ords_version 2> /dev/null)" == "" ]]; then
   docker build -t oracle-ords:$ords_version .
