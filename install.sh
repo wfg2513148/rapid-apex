@@ -34,7 +34,7 @@ echo ">>> end of print all input parameters..."
 
 echo ">>> parameter1 (install.sh)="$1
 
-if [ $1=N ]; then
+if [ "$1"="N" ]; then
   use_exist_media=$2
   docker_network=$3
   db_file_name=$4
