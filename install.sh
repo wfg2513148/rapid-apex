@@ -134,8 +134,11 @@ echo ""
 echo "--------- Step 2: compile oracle xe docker image ---------"
 echo ""
 
-if [[ ! "$(docker images -q oracle-xe:$db_version 2> /dev/null)" == "" ]]; then
+if [[ "$(docker images -q oracle-xe:$db_version 2> /dev/null)" == "" ]]; then
   docker build -t oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd .
+  echo ">>> docker image oracle-xe:$db_version does not exist, begin to build docker image..."
+else
+  echo ">>> docker image oracle-xe:$db_version exists, skip compile and reuse it..."
 fi
 
 
