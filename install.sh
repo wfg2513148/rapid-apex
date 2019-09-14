@@ -33,7 +33,9 @@ echo ">>> end of print all input parameters..."
 
 
 echo ">>> parameter1 (install.sh)="$1
-echo ">>> quick_install (install.sh)="$quick_install
+
+quick_install=$1
+echo ">>> quick_install (install.sh)="$1
 
 if [ "$quick_install" = "N" ]; then
   use_exist_media=$2
