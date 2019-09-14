@@ -73,7 +73,7 @@ echo ">>> current work path is $work_path"
 
 cd $work_path/docker-xe/
 
-if [ $use_exist_media='Y' ]; then
+if [ "$use_exist_media"="Y" ]; then
   if [ ! -f files/$apex_file_name ]; then
     curl -o files/$apex_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$apex_file_name
     #curl -o files/$apex_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$apex_file_name
@@ -87,7 +87,7 @@ fi;
 
 
 
-if [ $use_exist_media='Y' ]; then
+if [ "$use_exist_media"="Y" ]; then
   if [ ! -f files/$ords_file_name ]; then
     curl -o ../docker-ords/files/$ords_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$ords_file_name
     #curl -o files/$ords_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$ords_file_name
@@ -100,7 +100,7 @@ else
 fi;
 
 
-#if [ $use_exist_media='Y' ]; then
+#if [ "$use_exist_media"="Y" ]; then
 #  if [ ! -f files/$db_file_name ]; then
 #    curl -o files/$db_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$db_file_name
 #  fi;
