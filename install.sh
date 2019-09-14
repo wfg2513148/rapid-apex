@@ -183,7 +183,10 @@ echo ""
 cd $work_path/docker-ords/
 
 if [[ ! "$(docker images -q oracle-ords:$ords_version 2> /dev/null)" == "" ]]; then
+  echo ">>> docker image oracle-ords:$ords_version does not exist, begin to build docker image..."
   docker build -t oracle-ords:$ords_version .
+else
+  echo ">>> docker image oracle-ords:$ords_version exists, skip compile and reuse it..."
 fi;
 
 ##############################################################################################################
@@ -210,5 +213,5 @@ cd $work_path
 
 echo ""
 echo "--------- All installations are done, enjoy it! ---------"
-echo "--------- http:// ---------"
+
 ##############################################################################################################
