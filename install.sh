@@ -32,7 +32,7 @@ echo $*
 echo ">>> end of print all input parameters..."
 
 
-
+echo ">>> parameter1="$1
 
 if [ $1=N ]; then
   use_exist_media=$2
