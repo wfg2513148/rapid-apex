@@ -56,7 +56,9 @@ else
   echo ">>> you choose quick install mode..."
 fi;
 
-
+echo ">>> print all of input parameters..."
+echo $*
+echo ">>> end of print all of input parameters..."
 
 ##############################################################################################################
 
