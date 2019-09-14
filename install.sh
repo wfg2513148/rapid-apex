@@ -33,8 +33,9 @@ echo ">>> end of print all input parameters..."
 
 
 echo ">>> parameter1 (install.sh)="$1
+echo ">>> quick_install (install.sh)="$quick_install
 
-if [ "$1"="N" ]; then
+if [ "$quick_install" = "N" ]; then
   use_exist_media=$2
   docker_network=$3
   db_file_name=$4
