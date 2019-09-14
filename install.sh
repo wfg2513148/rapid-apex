@@ -39,18 +39,18 @@ if [ "$quick_install" = "N" ]; then
   db_port=$7
   db_pdb_name=$8
   em_port=$9
-  apex_file_name=$10
-  apex_version=$11
-  apex_admin_username=$12
-  apex_admin_pwd=$13
-  apex_admin_email=$14
-  apex_public_user_pass=$15
-  apex_listener_pass=$16
-  apex_rest_pass=$17
-  ords_pass=$18
-  ords_port=$19
-  ords_file_name=$20
-  ords_version=$21
+  apex_file_name=${10}
+  apex_version=${11}
+  apex_admin_username=${12}
+  apex_admin_pwd=${13}
+  apex_admin_email=${14}
+  apex_public_user_pass=${15}
+  apex_listener_pass=${16}
+  apex_rest_pass=${17}
+  ords_pass=${18}
+  ords_port=${19}
+  ords_file_name=${20}
+  ords_version=${21}
   echo ">>> you choose custom install mode..."
 else
   echo ">>> you choose quick install mode..."
