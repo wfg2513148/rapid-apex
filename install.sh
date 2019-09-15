@@ -146,7 +146,7 @@ if [[ "$(docker images -q registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:
     docker pull registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version
   else
     echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version does not exist, begin to build docker image..."
-    docker build -t registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd .
+    docker build -t oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd .
   fi;
 fi;
 
