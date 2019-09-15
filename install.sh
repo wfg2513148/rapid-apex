@@ -146,7 +146,7 @@ if [[ "$(docker images -q registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:
     docker pull registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version
   else
     echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version does not exist, begin to build docker image..."
-    docker build -t oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd .
+    docker build -t registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd .
   fi;
 fi;
 
@@ -161,7 +161,7 @@ docker run -d \
   --volume $work_path/oradata:/opt/oracle/oradata \
   --volume $work_path/apex:/tmp/apex \
   --network=$docker_network \
-  oracle-xe:$db_version
+  registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version
 
 
 # wait until database configuration is done
@@ -198,7 +198,7 @@ if [[ "$(docker images -q registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:
     docker pull registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version
   else
     echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version does not exist, begin to build docker image..."
-    docker build -t oracle-ords:$ords_version .
+    docker build -t registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version .
   fi;
 fi;
 
@@ -222,7 +222,7 @@ docker run -d -it --network=$docker_network \
   --volume $work_path/oracle-ords/$ords_version/config:/opt/ords \
   --volume $work_path/apex/images:/ords/apex-images \
   -p $ords_port:8080 \
-  oracle-ords:$ords_version
+  registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version
 
 cd $work_path
 
