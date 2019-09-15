@@ -138,13 +138,16 @@ echo ""
 echo "--------- Step 2: compile oracle xe docker image ---------"
 echo ""
 
+
 if [[ "$(docker images -q registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version 2> /dev/null)" == "" ]]; then
-  docker build -t registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd .
-  echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version does not exist, begin to build docker image..."
-else
-  echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version exists, pull from aliyun docker repository..."
-  docker pull registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version
-fi
+  if [[ "$quick_install" = "Y" ]]; then
+    echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version exists, pull from aliyun docker repository..."
+    docker pull registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version
+  else
+    echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version does not exist, begin to build docker image..."
+    docker build -t registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd .
+  fi;
+fi;
 
 
 echo ""
@@ -187,13 +190,17 @@ echo ""
 
 cd $work_path/docker-ords/
 
-if [[ "$(docker images -q registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version 2> /dev/null)" == "" ]]; then
-  echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version does not exist, begin to build docker image..."
-  docker build -t oracle-ords:$ords_version .
-else
-  echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version exists, pull from aliyun docker repository..."
+if [[ "$(docker images -q registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version 2> /dev/null)" == "" ]]; then
+  if [[ "$quick_install" = "Y" ]]; then
+    echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version exists, pull from aliyun docker repository..."
   docker pull registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version
+  else
+    echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version does not exist, begin to build docker image..."
+    docker build -t oracle-ords:$ords_version .
+  fi;
 fi;
+
+
 
 ##############################################################################################################
 
