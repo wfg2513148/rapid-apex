@@ -134,11 +134,11 @@ echo ""
 echo "--------- Step 2: compile oracle xe docker image ---------"
 echo ""
 
-if [[ "$(docker images -q oracle-xe:$db_version 2> /dev/null)" == "" ]]; then
-  docker build -t oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd .
-  echo ">>> docker image oracle-xe:$db_version does not exist, begin to build docker image..."
+if [[ "$(docker images -q registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version 2> /dev/null)" == "" ]]; then
+  docker build -t registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd .
+  echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version does not exist, begin to build docker image..."
 else
-  echo ">>> docker image oracle-xe:$db_version exists, skip compile and reuse it..."
+  echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version exists, skip compile and reuse it..."
 fi
 
 
@@ -182,11 +182,11 @@ echo ""
 
 cd $work_path/docker-ords/
 
-if [[ "$(docker images -q oracle-ords:$ords_version 2> /dev/null)" == "" ]]; then
-  echo ">>> docker image oracle-ords:$ords_version does not exist, begin to build docker image..."
+if [[ "$(docker images -q registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version 2> /dev/null)" == "" ]]; then
+  echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version does not exist, begin to build docker image..."
   docker build -t oracle-ords:$ords_version .
 else
-  echo ">>> docker image oracle-ords:$ords_version exists, skip compile and reuse it..."
+  echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version exists, skip compile and reuse it..."
 fi;
 
 ##############################################################################################################
