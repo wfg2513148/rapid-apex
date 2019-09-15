@@ -26,8 +26,6 @@ ords_pass=oracle # $18
 ords_port=32513 # $19
 ords_file_name=ords-19.2.0.199.1647.zip # $20
 ords_version=19.2.0 # $21
-aliyun_docker_account='' # $22
-aliyun_docker_password='' # $23
 
 
 quick_install=$1
@@ -53,8 +51,6 @@ if [ "$quick_install" = "N" ]; then
   ords_port=${19}
   ords_file_name=${20}
   ords_version=${21}
-  aliyun_docker_account=${22}
-  aliyun_docker_password=${23}
   echo ">>> you choose custom install mode..."
 else
   echo ">>> you choose quick install mode..."
