@@ -68,6 +68,13 @@ begin
 end;
 /
 
+-- Unlimit account password expire time
+alter profile DEFAULT limit PASSWORD_REUSE_TIME unlimited;
+alter profile DEFAULT limit PASSWORD_LIFE_TIME  unlimited;
+
+-- Required for ORDS install
+alter user apex_public_user identified by oracle account unlock;
+/
 
 -- Exit SQL
 exit
