@@ -165,7 +165,7 @@ while : ; do
     [[ `grep "Completed: ALTER PLUGGABLE DATABASE" xe_installation.log` ]] && break
     docker logs oracle-xe >& xe_installation.log
     echo "wait until oracle-xe configuration is done..."
-    sleep 30
+    sleep 10
 done
 
 ##############################################################################################################
@@ -210,10 +210,10 @@ docker run -d -it --network=$docker_network \
   -e DB_HOSTNAME=oracle-xe \
   -e DB_PORT=1521 \
   -e DB_SERVICENAME=$db_pdb_name \
-  -e APEX_PUBLIC_USER_PASS=$apex_public_user_pass \
-  -e APEX_LISTENER_PASS=$apex_listener_pass \
-  -e APEX_REST_PASS=$apex_rest_pass \
-  -e ORDS_PASS=$ords_pass \
+  -e APEX_PUBLIC_USER_PASS=oracle \
+  -e APEX_LISTENER_PASS=oracle \
+  -e APEX_REST_PASS=oracle \
+  -e ORDS_PASS=oracle \
   -e SYS_PASS=$db_sys_pwd \
   --volume $work_path/oracle-ords/$ords_version/config:/opt/ords \
   --volume $work_path/apex/images:/ords/apex-images \
