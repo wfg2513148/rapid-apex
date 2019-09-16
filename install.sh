@@ -19,15 +19,11 @@ apex_version=19.1 # $11
 apex_admin_username=ADMIN # $12
 apex_admin_pwd='Welc0me@1' # $13
 apex_admin_email='wfgdlut@gmail.com' # $14
-apex_public_user_pass=oracle # $15
-apex_listener_pass=oracle # $16
-apex_rest_pass=oracle # $17
-ords_pass=oracle # $18
-ords_port=32513 # $19
-ords_file_name=ords-19.2.0.199.1647.zip # $20
-ords_version=19.2.0 # $21
-aliyun_docker_account='' # $22
-aliyun_docker_password='' # $23
+ords_port=32513 # $15
+ords_file_name=ords-19.2.0.199.1647.zip # $16
+ords_version=19.2.0 # $17
+aliyun_docker_account='' # $18
+aliyun_docker_password='' # $19
 
 
 quick_install=$1
@@ -46,15 +42,11 @@ if [ "$quick_install" = "N" ]; then
   apex_admin_username=${12}
   apex_admin_pwd=${13}
   apex_admin_email=${14}
-  apex_public_user_pass=${15}
-  apex_listener_pass=${16}
-  apex_rest_pass=${17}
-  ords_pass=${18}
-  ords_port=${19}
-  ords_file_name=${20}
-  ords_version=${21}
-  aliyun_docker_account=${22}
-  aliyun_docker_password=${23}
+  ords_port=${15}
+  ords_file_name=${16}
+  ords_version=${17}
+  aliyun_docker_account=${18}
+  aliyun_docker_password=${19}
   echo ">>> you choose custom install mode..."
 else
   echo ">>> you choose quick install mode..."
