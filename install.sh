@@ -186,14 +186,8 @@ echo ""
 cd $work_path/docker-ords/
 
 if [[ "$(docker images -q registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-xe:$db_version 2> /dev/null)" == "" ]]; then
-  if [[ "$quick_install" = "Y" ]]; then
-    echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version exists, pull from aliyun docker repository..."
-    docker login --username=$aliyun_docker_account --password=$aliyun_docker_password registry-vpc.cn-shanghai.aliyuncs.com
-    docker pull registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version
-  else
-    echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version does not exist, begin to build docker image..."
+  echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version does not exist, begin to build docker image..."
     docker build -t registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version .
-  fi;
 else
   echo ">>> docker image registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version is found, skip compile step and go on..."
 fi;
