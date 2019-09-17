@@ -212,6 +212,7 @@ docker run -d -it --network=$docker_network \
   -e APEX_REST_PASS=oracle \
   -e ORDS_PASS=oracle \
   -e SYS_PASS=$db_sys_pwd \
+  -e TOMCAT_FILE_NAME=$tomcat_file_name \
   --volume $work_path/oracle-ords/$ords_version/config:/opt/ords \
   --volume $work_path/apex/images:/ords/apex-images \
   -p $ords_port:8080 \

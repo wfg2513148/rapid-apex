@@ -16,8 +16,8 @@ then
 
 	# move ords.war to tomcat/webapps/ and startup tomcat service
 	echo ">>> move ords.war to tomcat/webapps/" && \
-	unzip /tmp/apache-tomcat*.zip && \
-	mv /tmp/apache-tomcat-*/ $TOMCAT_HOME/tomcat && \
+	unzip /tmp/$TOMCAT_FILE_NAME -d tomcat && \
+	mv /tmp/${$TOMCAT_FILE_NAME%%.*} $TOMCAT_HOME/tomcat && \
 	chmod 755 $TOMCAT_HOME/tomcat/bin/* && \
 	cp ords.war $TOMCAT_HOME/tomcat/webapps/ && \
 	. $TOMCAT_HOME/tomcat/bin/startup.sh
