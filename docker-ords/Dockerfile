@@ -14,7 +14,7 @@ ENV TZ="Asia/Shanghai" \
 
 WORKDIR ${ORDS_DIR}
 
-COPY ["files/ords-*.zip", "files/tomcat*.zip", "scripts/*", "/tmp/"]
+COPY ["files/ords-*.zip", "files/apache-tomcat*.zip", "scripts/*", "/tmp/"]
 
 RUN apk add --update curl
 
