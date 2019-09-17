@@ -5,7 +5,7 @@
 
 #source env.properties
 
-quick_install=Y # $1
+quick_install=N # $1
 use_exist_media=Y # $2
 docker_network=oracle_network # $3
 db_file_name=oracle-database-xe-18c-1.0-1.x86_64.rpm # $4

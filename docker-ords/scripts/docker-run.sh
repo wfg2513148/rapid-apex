@@ -18,8 +18,4 @@ mv /tmp/config-run-ords.sh $ORDS_DIR/
 chmod +x $ORDS_DIR/config-run-ords.sh && \
 java -jar ords.war configdir $APEX_CONFIG_DIR
 
-# unzip & setup tomcat
-unzip $ORDS_DIR/tomcat*.zip && \
-mv apache-tomcat-*/ tomcat && \
-chmod 755 tomcat/bin/*
 

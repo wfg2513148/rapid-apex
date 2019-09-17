@@ -13,7 +13,13 @@ then
 	echo "$ORDS_CONFIG_FILE found. Running standalone"
 	# comment below line and use tomcat as web container of ORDS
 	# java -jar ords.war standalone
-	cp ords.war $ORDS_DIR/tomcat/webapps/
+
+	# move ords.war to tomcat/webapps/ and startup tomcat service
+	echo ">>> move ords.war to tomcat/webapps/" && \
+	unzip $ORDS_DIR/tomcat*.zip && \
+	mv apache-tomcat-*/ tomcat && \
+	chmod 755 tomcat/bin/* && \
+	cp ords.war $ORDS_DIR/tomcat/webapps/ && \
 	. $ORDS_DIR/tomcat/bin/startup.sh
 else
 	echo "$ORDS_CONFIG_FILE not found. Installing ORDS"
