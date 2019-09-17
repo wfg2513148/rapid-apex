@@ -16,11 +16,11 @@ then
 
 	# move ords.war to tomcat/webapps/ and startup tomcat service
 	echo ">>> move ords.war to tomcat/webapps/" && \
-	unzip $ORDS_DIR/apache-tomcat*.zip && \
-	mv apache-tomcat-*/ tomcat && \
-	chmod 755 tomcat/bin/* && \
-	cp ords.war $ORDS_DIR/tomcat/webapps/ && \
-	. $ORDS_DIR/tomcat/bin/startup.sh
+	unzip /tmp/apache-tomcat*.zip && \
+	mv /tmp/apache-tomcat-*/ $TOMCAT_HOME/tomcat && \
+	chmod 755 $TOMCAT_HOME/tomcat/bin/* && \
+	cp ords.war $TOMCAT_HOME/tomcat/webapps/ && \
+	. $TOMCAT_HOME/tomcat/bin/startup.sh
 else
 	echo "$ORDS_CONFIG_FILE not found. Installing ORDS"
 	echo "Generating ords_params.properties"
