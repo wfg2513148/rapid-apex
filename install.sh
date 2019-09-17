@@ -6,7 +6,7 @@
 #source env.properties
 
 quick_install=Y # $1
-use_exist_media=N # $2
+use_exist_media=Y # $2
 docker_network=oracle_network # $3
 db_file_name=oracle-database-xe-18c-1.0-1.x86_64.rpm # $4
 db_version=18c # $5
@@ -24,6 +24,7 @@ ords_file_name=ords-19.2.0.199.1647.zip # $16
 ords_version=19.2.0 # $17
 aliyun_docker_account='' # $18
 aliyun_docker_password='' # $19
+tomcat_file_name=apache-tomcat-9.0.24.zip # $20
 
 
 quick_install=$1
@@ -47,6 +48,7 @@ if [ "$quick_install" = "N" ]; then
   ords_version=${17}
   aliyun_docker_account=${18}
   aliyun_docker_password=${19}
+  tomcat_file_name=${20}
   echo ">>> you choose custom install mode..."
 else
   echo ">>> you choose quick install mode..."
@@ -69,7 +71,7 @@ echo ">>> current work path is $work_path"
 
 cd $work_path/docker-xe/files
 
-if [ "$use_exist_media"="Y" ]; then
+if [ "$use_exist_media" = "Y" ]; then
   if [ ! -f $apex_file_name ]; then
     curl -o $apex_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$apex_file_name
     #curl -o $apex_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$apex_file_name
@@ -83,10 +85,11 @@ fi;
 
 cd $work_path/docker-ords/files
 
-if [ "$use_exist_media"="Y" ]; then
+if [ "$use_exist_media" = "Y" ]; then
   if [ ! -f $ords_file_name ]; then
     curl -o $ords_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$ords_file_name
     #curl -o $ords_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$ords_file_name
+    curl -o $tomcat_file_name http://mirrors.tuna.tsinghua.edu.cn/apache/tomcat/tomcat-9/v9.0.24/bin/apache-tomcat-9.0.24.zip
   fi;
 else
   if [ ! -f $ords_file_name ]; then
@@ -96,7 +99,7 @@ else
 fi;
 
 cd $work_path/docker-xe/files
-if [ "$use_exist_media"="Y" ]; then
+if [ "$use_exist_media" = "Y" ]; then
   if [ ! -f $db_file_name ]; then
     curl -o $db_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$db_file_name
   fi;

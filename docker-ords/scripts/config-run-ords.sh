@@ -11,7 +11,10 @@ cd $ORDS_DIR
 if [ -f "$ORDS_CONFIG_FILE" ]
 then
 	echo "$ORDS_CONFIG_FILE found. Running standalone"
-	java -jar ords.war standalone
+	# comment below line and use tomcat as web container of ORDS
+	# java -jar ords.war standalone
+	cp ords.war $ORDS_DIR/tomcat/webapps/
+	. $ORDS_DIR/tomcat/bin/startup.sh
 else
 	echo "$ORDS_CONFIG_FILE not found. Installing ORDS"
 	echo "Generating ords_params.properties"
