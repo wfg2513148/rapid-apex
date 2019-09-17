@@ -15,7 +15,7 @@ then
 	java -jar ords.war standalone
 
 	# move ords.war to tomcat/webapps/ and startup tomcat service
-	echo ">>> move ords.war to tomcat/webapps/" && \
+	#echo ">>> move ords.war to tomcat/webapps/" && \
 	#unzip /tmp/$TOMCAT_FILE_NAME && \
 	#mkdir -p $TOMCAT_HOME/tomcat && \
 	#mv /tmp/${$TOMCAT_FILE_NAME%%.*}/* $TOMCAT_HOME/tomcat/ && \
