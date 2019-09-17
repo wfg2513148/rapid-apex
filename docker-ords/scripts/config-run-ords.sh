@@ -12,16 +12,16 @@ if [ -f "$ORDS_CONFIG_FILE" ]
 then
 	echo "$ORDS_CONFIG_FILE found. Running standalone"
 	# comment below line and use tomcat as web container of ORDS
-	# java -jar ords.war standalone
+	java -jar ords.war standalone
 
 	# move ords.war to tomcat/webapps/ and startup tomcat service
 	echo ">>> move ords.war to tomcat/webapps/" && \
-	unzip /tmp/$TOMCAT_FILE_NAME && \
-	mkdir -p $TOMCAT_HOME/tomcat && \
-	mv /tmp/${$TOMCAT_FILE_NAME%%.*}/* $TOMCAT_HOME/tomcat/ && \
-	chmod 755 $TOMCAT_HOME/tomcat/bin/* && \
-	cp ords.war $TOMCAT_HOME/tomcat/webapps/ && \
-	. $TOMCAT_HOME/tomcat/bin/startup.sh
+	#unzip /tmp/$TOMCAT_FILE_NAME && \
+	#mkdir -p $TOMCAT_HOME/tomcat && \
+	#mv /tmp/${$TOMCAT_FILE_NAME%%.*}/* $TOMCAT_HOME/tomcat/ && \
+	#chmod 755 $TOMCAT_HOME/tomcat/bin/* && \
+	#cp ords.war $TOMCAT_HOME/tomcat/webapps/ && \
+	#. $TOMCAT_HOME/tomcat/bin/startup.sh
 else
 	echo "$ORDS_CONFIG_FILE not found. Installing ORDS"
 	echo "Generating ords_params.properties"
