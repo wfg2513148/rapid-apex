@@ -73,8 +73,8 @@ cd $work_path/docker-xe/files
 
 if [ "$use_exist_media" = "Y" ]; then
   if [ ! -f $apex_file_name ]; then
-    curl -o $apex_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$apex_file_name
-    #curl -o $apex_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$apex_file_name
+    #curl -o $apex_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$apex_file_name
+    curl -o $apex_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$apex_file_name
   fi;
 else
   if [ ! -f $apex_file_name ]; then
@@ -87,9 +87,9 @@ cd $work_path/docker-ords/files
 
 if [ "$use_exist_media" = "Y" ]; then
   if [ ! -f $ords_file_name ]; then
-    curl -o $ords_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$ords_file_name
-    #curl -o $ords_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$ords_file_name
-    curl -o $tomcat_file_name http://mirrors.tuna.tsinghua.edu.cn/apache/tomcat/tomcat-9/v9.0.24/bin/apache-tomcat-9.0.24.zip
+    #curl -o $ords_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$ords_file_name
+    curl -o $ords_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$ords_file_name
+    #curl -o $tomcat_file_name http://mirrors.tuna.tsinghua.edu.cn/apache/tomcat/tomcat-9/v9.0.24/bin/apache-tomcat-9.0.24.zip
   fi;
 else
   if [ ! -f $ords_file_name ]; then
@@ -101,6 +101,7 @@ fi;
 cd $work_path/docker-xe/files
 if [ "$use_exist_media" = "Y" ]; then
   if [ ! -f $db_file_name ]; then
+    #curl -o $db_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$db_file_name
     curl -o $db_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$db_file_name
   fi;
 else
