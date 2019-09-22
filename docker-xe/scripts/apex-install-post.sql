@@ -5,23 +5,23 @@
 whenever sqlerror exit sql.sqlcode
 
 -- Parameters: If using to create another user later on, just modify this section
-define admin_name = '&3'
-define admin_pass = '&4'
-define admin_email = '&5'
+define admin_name = '&1'
+define admin_pass = '&2'
+define admin_email = '&3'
 
 -- Validate parameters
 declare
 begin
   if '&admin_name' is null then
-    raise_application_error(-20001, 'Param 3: admin_name missing');
+    raise_application_error(-20001, 'Param 1: admin_name missing');
   end if;
 
   if '&admin_pass' is null then
-    raise_application_error(-20001, 'Param 4: admin_pass missing');
+    raise_application_error(-20001, 'Param 2: admin_pass missing');
   end if;
 
   if '&admin_email' is null then
-    raise_application_error(-20001, 'Param 5: admin_email missing');
+    raise_application_error(-20001, 'Param 3: admin_email missing');
   end if;
 end;
 /
