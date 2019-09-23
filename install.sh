@@ -110,10 +110,9 @@ function downloadFiles()
   fi
 }
 
+# call downloadFiles() to try to download installation files
+downloadFiles
 
-
-
-##############################################################################################################
 
 cd $work_path/docker-xe
 
