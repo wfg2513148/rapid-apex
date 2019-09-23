@@ -62,33 +62,33 @@ function downloadFiles()
   # 1. try to download apex installation zip file
   cd $work_path/docker-xe/files
   if [ ! -f $apex_file_name ]; then
-    httpRequest "https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/1$apex_file_name"
+    httpRequest "https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$apex_file_name"
     if [ "$url_check" = "N" ]; then
-      httpRequest "https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/1$apex_file_name"
+      httpRequest "https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$apex_file_name"
       if [ "$url_check" = "N" ]; then
         exit;
       else
-        curl -o $apex_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/1$apex_file_name
+        curl -o $apex_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$apex_file_name
       fi
     else
-      curl -o $apex_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/1$apex_file_name
+      curl -o $apex_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$apex_file_name
     fi
   fi
 
   # 2. try to download ords installation zip file
   cd $work_path/docker-ords/files
   if [ ! -f $ords_file_name ]; then
-    httpRequest "https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/1$ords_file_name"
+    httpRequest "https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$ords_file_name"
     if [ "$url_check" = "N" ]; then
-      httpRequest "https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/1$ords_file_name"
+      httpRequest "https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$ords_file_name"
       if [ "$url_check" = "N" ]; then
         exit;
       else
-        curl -o $ords_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/1$ords_file_name
+        curl -o $ords_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$ords_file_name
         #curl -o $tomcat_file_name http://mirrors.tuna.tsinghua.edu.cn/apache/tomcat/tomcat-9/v9.0.24/bin/apache-tomcat-9.0.24.zip
       fi
     else
-      curl -o $ords_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/1$ords_file_name
+      curl -o $ords_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$ords_file_name
       #curl -o $tomcat_file_name http://mirrors.tuna.tsinghua.edu.cn/apache/tomcat/tomcat-9/v9.0.24/bin/apache-tomcat-9.0.24.zip
     fi
   fi
@@ -96,16 +96,16 @@ function downloadFiles()
   # 3. try to download oracle xe installation rpm file
   cd $work_path/docker-xe/files
   if [ ! -f $db_file_name ]; then
-    httpRequest "https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/1$db_file_name"
+    httpRequest "https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$db_file_name"
     if [ "$url_check" = "N" ]; then
-      httpRequest "https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/1$db_file_name"
+      httpRequest "https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$db_file_name"
       if [ "$url_check" = "N" ]; then
         exit;
       else
-        curl -o $db_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/1$db_file_name
+        curl -o $db_file_name https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/$db_file_name
       fi
     else
-      curl -o $db_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/1$db_file_name
+      curl -o $db_file_name https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/$db_file_name
     fi
   fi
 }
