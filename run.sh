@@ -29,6 +29,7 @@ if [ "$quick_install" = "N" ]; then
   ords_file_name=${13:-'ords-19.2.0.199.1647.zip'}
   ords_version=${14:-'19.2.0'}
   ords_port=${15:-32513}
+  ip_address=${16:-'localhost'}
   echo ">>> you choose custom install mode..."
 else
   echo ">>> you choose quick install mode..."
