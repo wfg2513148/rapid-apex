@@ -71,9 +71,11 @@ function downloadFiles()
       if [ "$url_check" = "N" ]; then
         exit;
       else
+        echo ">>> download apex zip file from $oss_url2"
         curl -o $apex_file_name $oss_url2$apex_file_name
       fi
     else
+      echo ">>> download apex zip file from $oss_url"
       curl -o $apex_file_name $oss_url$apex_file_name
     fi
   fi
@@ -87,10 +89,12 @@ function downloadFiles()
       if [ "$url_check" = "N" ]; then
         exit;
       else
+        echo ">>> download ords zip file from $oss_url2"
         curl -o $ords_file_name $oss_url2$ords_file_name
         #curl -o $tomcat_file_name http://mirrors.tuna.tsinghua.edu.cn/apache/tomcat/tomcat-9/v9.0.24/bin/apache-tomcat-9.0.24.zip
       fi
     else
+      echo ">>> download ords zip file from $oss_url"
       curl -o $ords_file_name $oss_url$ords_file_name
       #curl -o $tomcat_file_name http://mirrors.tuna.tsinghua.edu.cn/apache/tomcat/tomcat-9/v9.0.24/bin/apache-tomcat-9.0.24.zip
     fi
@@ -105,9 +109,11 @@ function downloadFiles()
       if [ "$url_check" = "N" ]; then
         exit;
       else
+        echo ">>> download database installation file from $oss_url2"
         curl -o $db_file_name $oss_url2$db_file_name
       fi
     else
+      echo ">>> download database installation file from $oss_url"
       curl -o $db_file_name $oss_url$db_file_name
     fi
   fi
