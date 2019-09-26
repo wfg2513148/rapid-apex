@@ -20,6 +20,7 @@ apex_admin_email=${12:-'wfgdlut@gmail.com'}
 ords_file_name=${13:-'ords-19.2.0.199.1647.zip'}
 ords_version=${14:-'19.2.0'}
 ords_port=${15:-32513}
+install_path=${16:-'/root'}
 
 url_check=""
 docker_prefix='rapid-apex'
@@ -37,7 +38,11 @@ echo ""
 echo "--------- Step 1: Download installation media ---------"
 echo ""
 
+if [ ! -d $install_path ]; then
+  mkdir -p $install_path
+fi;
 
+cd $install_path
 work_path=`pwd`
 
 echo ">>> current work path is $work_path"
