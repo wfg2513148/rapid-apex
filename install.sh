@@ -21,9 +21,9 @@ ords_file_name=${13:-'ords-19.2.0.199.1647.zip'}
 ords_version=${14:-'19.2.0'}
 ords_port=${15:-32513}
 url_check=""
-oss_url='https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/'
-oss_url1='https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/'
-oss_url2='https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/'
+oss_url='https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/'
+oss_url2='https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/'
+oss_url3='https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/'
 
 echo ">>> print all of input parameters..."
 echo $*
@@ -214,6 +214,23 @@ docker run -d -it --network=$docker_network \
 cd $work_path
 
 echo ""
+echo "----------------------- APEX Info -----------------------"
+echo "Admin URL: http://localhost:$ords_port/ords"
+echo "Workspace: INTERNAL"
+echo "User Name: $apex_admin_username"
+echo "Password:  $apex_admin_pwd"
+echo "------------------------ DB Info ------------------------"
+echo "CDB: sqlplus sys/$db_sys_pwd@localhost/XE as sysdba"
+echo "PDB: sqlplus sys/$db_sys_pwd@localhost/XEPDB1 as sysdba"
+echo "---------------------- Config Info ----------------------"
+echo "Database Data File: $work_path/oradata/"
+echo "ORDS Config File: $work_path/oracle-ords/"
+echo "---------------------- Docker Info ----------------------"
+echo "docker images"
+echo "docker ps -a"
 echo "--------- All installations are done, enjoy it! ---------"
+echo ""
+echo "star me if you like it: https://github.com/wfg2513148/rapid-apex"
+echo ""
 
-##############################################################################################################
+

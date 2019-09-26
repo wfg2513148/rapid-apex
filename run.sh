@@ -1,8 +1,9 @@
 #!/bin/bash
 
 ##############################################################################################################
-# This script is to rapid install Oracle XE, APEX and ORDS automatically.
+# This script is to rapid install Oracle database, APEX and ORDS automatically.
 # Created by: Kenny Wang
+# Email: wfgdlut@gmail.com
 ##############################################################################################################
 repo_name="rapid-apex"
 
