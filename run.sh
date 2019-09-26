@@ -4,7 +4,7 @@
 # This script is to rapid install Oracle XE, APEX and ORDS automatically.
 # Created by: Kenny Wang
 ##############################################################################################################
-
+repo_name="rapid-apex"
 
 echo ""
 echo "--------- Step 0: Environment Check ---------"
@@ -83,18 +83,18 @@ if ! isinstalled $package; then
 fi;
 
 
-if [ ! -d "$work_path/xe-apex-ords-rapid-install" ]; then
-  curl -o xe-apex-ords-rapid-install.zip https://codeload.github.com/wfg2513148/xe-apex-ords-rapid-install/zip/master && \
-  unzip -oq xe-apex-ords-rapid-install.zip && \
-  rm -Rf xe-apex-ords-rapid-install.zip && \
-  mv xe-apex-ords-rapid-install-master xe-apex-ords-rapid-install
+if [ ! -d "$work_path/$repo_name" ]; then
+  curl -o $repo_name.zip https://codeload.github.com/wfg2513148/$repo_name/zip/master && \
+  unzip -oq $repo_name.zip && \
+  rm -Rf $repo_name.zip && \
+  mv $repo_name-master $repo_name
 fi;
 
 
 ##############################################################################################################
 
 # execute install.sh
-cd xe-apex-ords-rapid-install/
+cd $repo_name/
 chmod +x install.sh
 
 ./install.sh $quick_install $docker_network $db_file_name $db_version $db_sys_pwd $db_port $em_port $apex_file_name $apex_version $apex_admin_username $apex_admin_pwd $apex_admin_email $ords_file_name $ords_version $ords_port
