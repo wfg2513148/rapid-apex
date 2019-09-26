@@ -3,8 +3,6 @@
 
 ##############################################################################################################
 
-#source env.properties
-
 quick_install=${1:-"N"}
 docker_network=${2:-'oracle_network'}
 db_file_name=${3:-'oracle-database-xe-18c-1.0-1.x86_64.rpm'}
@@ -34,6 +32,8 @@ echo ">>> end of print all of input parameters..."
 
 ##############################################################################################################
 
+
+
 echo ""
 echo "--------- Step 1: Download installation media ---------"
 echo ""
@@ -47,7 +47,7 @@ work_path=`pwd`
 
 echo ">>> current work path is $work_path"
 
-
+exit;
 
 # check if url is valid
 function httpRequest()
