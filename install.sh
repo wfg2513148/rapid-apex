@@ -40,7 +40,6 @@ work_path=`pwd`
 
 echo ">>> current work path is $work_path"
 
-exit;
 
 # check if url is valid
 function httpRequest()
