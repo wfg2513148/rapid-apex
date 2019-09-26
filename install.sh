@@ -18,6 +18,7 @@ apex_admin_email=${12:-'wfgdlut@gmail.com'}
 ords_file_name=${13:-'ords-19.2.0.199.1647.zip'}
 ords_version=${14:-'19.2.0'}
 ords_port=${15:-32513}
+ip_address=${16:-'localhost'}
 
 url_check=""
 docker_prefix='rapid-apex'
@@ -234,15 +235,15 @@ echo "--------- All installations are done, enjoy it! ---------"
 echo ""
 echo "----------------------- APEX Info -----------------------"
 echo ""
-echo "Admin URL: http://localhost:$ords_port/ords"
+echo "Admin URL: http://$ip_address:$ords_port/ords"
 echo "Workspace: INTERNAL"
 echo "User Name: $apex_admin_username"
 echo "Password:  $apex_admin_pwd"
 echo ""
 echo "------------------------ DB Info ------------------------"
 echo ""
-echo "CDB: sqlplus sys/$db_sys_pwd@localhost/XE as sysdba"
-echo "PDB: sqlplus sys/$db_sys_pwd@localhost/XEPDB1 as sysdba"
+echo "CDB: sqlplus sys/$db_sys_pwd@$ip_address:$db_port/XE as sysdba"
+echo "PDB: sqlplus sys/$db_sys_pwd@$ip_address:$db_port/XEPDB1 as sysdba"
 echo ""
 echo "---------------------- Config Info ----------------------"
 echo ""
