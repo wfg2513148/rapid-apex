@@ -22,7 +22,7 @@ ip_address=${16:-'localhost'}
 
 url_check=""
 docker_prefix='rapid-apex'
-oss_url='https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/'
+oss_url='https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/'
 oss_url2='https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/'
 
 
