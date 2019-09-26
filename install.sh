@@ -20,18 +20,12 @@ apex_admin_email=${12:-'wfgdlut@gmail.com'}
 ords_file_name=${13:-'ords-19.2.0.199.1647.zip'}
 ords_version=${14:-'19.2.0'}
 ords_port=${15:-32513}
-<<<<<<< HEAD
 
 url_check=""
 docker_prefix='rapid-apex'
 oss_url2='https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/'
 oss_url='https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/'
-=======
-url_check=""
-oss_url='https://cn-oracle-apex.oss-cn-shanghai-internal.aliyuncs.com/'
-oss_url2='https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/'
-oss_url3='https://cn-oracle-apex.oss-cn-shanghai.aliyuncs.com/'
->>>>>>> Initial commit
+
 
 echo ">>> print all of input parameters..."
 echo $*
@@ -234,30 +228,35 @@ docker run -d -it --network=$docker_network \
   --volume $work_path/oracle-ords/$ords_version/config:/opt/ords \
   --volume $work_path/apex/images:/ords/apex-images \
   -p $ords_port:8080 \
-<<<<<<< HEAD
   $docker_prefix/oracle-ords:$ords_version
-=======
-  registry-vpc.cn-shanghai.aliyuncs.com/kwang/oracle-ords:$ords_version
->>>>>>> Initial commit
 
 cd $work_path
 
+
+echo "--------- All installations are done, enjoy it! ---------"
 echo ""
 echo "----------------------- APEX Info -----------------------"
+echo ""
 echo "Admin URL: http://localhost:$ords_port/ords"
 echo "Workspace: INTERNAL"
 echo "User Name: $apex_admin_username"
 echo "Password:  $apex_admin_pwd"
+echo ""
 echo "------------------------ DB Info ------------------------"
+echo ""
 echo "CDB: sqlplus sys/$db_sys_pwd@localhost/XE as sysdba"
 echo "PDB: sqlplus sys/$db_sys_pwd@localhost/XEPDB1 as sysdba"
+echo ""
 echo "---------------------- Config Info ----------------------"
+echo ""
 echo "Database Data File: $work_path/oradata/"
 echo "ORDS Config File: $work_path/oracle-ords/"
+echo ""
 echo "---------------------- Docker Info ----------------------"
+echo ""
 echo "docker images"
 echo "docker ps -a"
-echo "--------- All installations are done, enjoy it! ---------"
+echo ""
 echo ""
 echo "star me if you like it: https://github.com/wfg2513148/rapid-apex"
 echo ""
