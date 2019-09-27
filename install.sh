@@ -21,6 +21,7 @@ ords_port=${15:-32513}
 ip_address=${16:-'localhost'}
 
 url_check=""
+fileName=""
 docker_prefix='rapid-apex'
 oss_url='https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/'
 
@@ -62,33 +63,42 @@ function httpRequest()
 # download installation file
 function download()
 {
-  if [[ $1 =~ "/" ]]; then
-    fileName=$1
+  fileUrl=$1
+  fileName=""
+  echo "fileUrl=$fileUrl"
 
+  if [[ $1 =~ "/" ]]; then
     # user has downloaded the file, just copy it
-    if [[ ${fileName:0:1} == "/" ]]; then
+    if [[ ${fileUrl:0:1} == "/" ]]; then
       echo ">>> copy installation file to files folder"
-      copy fileName .
+      fileName=${fileUrl##*"/"}
+      cp $fileUrl .
     else
       # download from url user provided
       echo ">>> download installation file from the url user provided"
-      httpRequest "$fileName"
+      httpRequest "$fileUrl"
       if [ "$url_check" = "N" ]; then
+        fileName=""
         exit;
+      else
+        fileName=${fileUrl##*"/"}
+        curl -o $fileName $fileUrl
       fi
     fi;
   else
     # try to download installation file from default repository
-    if [ ! -f $apex_file_name ]; then
-      httpRequest "$oss_url$apex_file_name"
+    fileName=$fileUrl
+    echo ">>> download $fileName from $oss_url"
+    if [ ! -f $fileName ]; then
+      httpRequest "$oss_url$fileName"
       if [ "$url_check" = "N" ]; then
         exit;
       else
-        echo ">>> download $apex_file_name from $oss_url"
-        curl -o $apex_file_name $oss_url$apex_file_name
+        curl -o $fileName $oss_url$fileName
       fi
     fi
   fi;
+
 }
 
 
@@ -97,16 +107,28 @@ function download()
 # download apex installation file
 cd $work_path/docker-xe/files
 download $apex_file_name
+apex_file_name=$fileName
+
+echo ">>> apex_file_name="$apex_file_name
+echo ""
 
 # download ords installation file
 cd $work_path/docker-ords/files
 download $ords_file_name
+ords_file_name=$fileName
+
+echo ">>> ords_file_name="$ords_file_name
+echo ""
 
 # download oracle db installation file
 cd $work_path/docker-xe/files
 download $db_file_name
+db_file_name=$fileName
 
-exit;
+echo ">>> db_file_name="$db_file_name
+echo ""
+
+
 
 
 cd $work_path/docker-xe
