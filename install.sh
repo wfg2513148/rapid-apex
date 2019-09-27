@@ -23,7 +23,6 @@ ip_address=${16:-'localhost'}
 url_check=""
 docker_prefix='rapid-apex'
 oss_url='https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/'
-oss_url2='https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/'
 
 
 echo ">>> print all of input parameters..."
@@ -58,68 +57,56 @@ function httpRequest()
     fi
 }
 
-# try to download media from different storages
-function downloadFiles()
+
+
+# download installation file
+function download()
 {
-  # 1. try to download apex installation zip file
-  cd $work_path/docker-xe/files
-  if [ ! -f $apex_file_name ]; then
-    httpRequest "$oss_url$apex_file_name"
-    if [ "$url_check" = "N" ]; then
-      httpRequest "$oss_url2$apex_file_name"
-      if [ "$url_check" = "N" ]; then
-        exit;
-      else
-        echo ">>> download apex zip file from $oss_url2"
-        curl -o $apex_file_name $oss_url2$apex_file_name
-      fi
-    else
-      echo ">>> download apex zip file from $oss_url"
-      curl -o $apex_file_name $oss_url$apex_file_name
-    fi
-  fi
+  if [[ $1 =~ "/" ]]; then
+    fileName=$1
 
-  # 2. try to download ords installation zip file
-  cd $work_path/docker-ords/files
-  if [ ! -f $ords_file_name ]; then
-    httpRequest "$oss_url$ords_file_name"
-    if [ "$url_check" = "N" ]; then
-      httpRequest "$oss_url2$ords_file_name"
+    # user has downloaded the file, just copy it
+    if [[ ${fileName:0:1} == "/" ]]; then
+      echo ">>> copy installation file to files folder"
+      copy fileName .
+    else
+      # download from url user provided
+      echo ">>> download installation file from the url user provided"
+      httpRequest "$fileName"
+      if [ "$url_check" = "N" ]; then
+        exit;
+      fi
+    fi;
+  else
+    # try to download installation file from default repository
+    if [ ! -f $apex_file_name ]; then
+      httpRequest "$oss_url$apex_file_name"
       if [ "$url_check" = "N" ]; then
         exit;
       else
-        echo ">>> download ords zip file from $oss_url2"
-        curl -o $ords_file_name $oss_url2$ords_file_name
-        #curl -o $tomcat_file_name http://mirrors.tuna.tsinghua.edu.cn/apache/tomcat/tomcat-9/v9.0.24/bin/apache-tomcat-9.0.24.zip
+        echo ">>> download $apex_file_name from $oss_url"
+        curl -o $apex_file_name $oss_url$apex_file_name
       fi
-    else
-      echo ">>> download ords zip file from $oss_url"
-      curl -o $ords_file_name $oss_url$ords_file_name
-      #curl -o $tomcat_file_name http://mirrors.tuna.tsinghua.edu.cn/apache/tomcat/tomcat-9/v9.0.24/bin/apache-tomcat-9.0.24.zip
     fi
-  fi
-
-  # 3. try to download oracle xe installation rpm file
-  cd $work_path/docker-xe/files
-  if [ ! -f $db_file_name ]; then
-    httpRequest "$oss_url$db_file_name"
-    if [ "$url_check" = "N" ]; then
-      httpRequest "$oss_url2$db_file_name"
-      if [ "$url_check" = "N" ]; then
-        exit;
-      else
-        echo ">>> download database installation file from $oss_url2"
-        curl -o $db_file_name $oss_url2$db_file_name
-      fi
-    else
-      echo ">>> download database installation file from $oss_url"
-      curl -o $db_file_name $oss_url$db_file_name
-    fi
-  fi
+  fi;
 }
 
-# call downloadFiles() to try to download installation files
-downloadFiles
+
+
+
+# download apex installation file
+cd $work_path/docker-xe/files
+download $apex_file_name
+
+# download ords installation file
+cd $work_path/docker-ords/files
+download $ords_file_name
+
+# download oracle db installation file
+cd $work_path/docker-xe/files
+download $db_file_name
+
+exit;
 
 
 cd $work_path/docker-xe
