@@ -1,4 +1,4 @@
-# Rapid-APEX
+# Rapid-APEX (English [中文](https://github.com/wfg2513148/rapid-apex/tree/master/cn))
 [![APEX Tool](https://cdn.rawgit.com/Dani3lSun/apex-github-badges/b7e95341/badges/apex-tool-badge.svg)](<LINK>) [![APEX Built with Love](https://cdn.rawgit.com/Dani3lSun/apex-github-badges/7919f913/badges/apex-love-badge.svg)](<LINK>) [![APEX 5.0](https://cdn.rawgit.com/Dani3lSun/apex-github-badges/88f0a6ed/badges/apex-5_0-badge.svg)](<LINK>) [![APEX 5.1](https://cdn.rawgit.com/Dani3lSun/apex-github-badges/88f0a6ed/badges/apex-5_1-badge.svg)](<LINK>) [![APEX 18.1](https://cdn.rawgit.com/Dani3lSun/apex-github-badges/2fee47b7/badges/apex-18_1-badge.svg)](<LINK>) [![APEX 18.2](https://cdn.rawgit.com/Dani3lSun/apex-github-badges/2fee47b7/badges/apex-18_2-badge.svg)](<LINK>) [![APEX 18.2](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/apex-badges/APEX-19.1-blue.svg)](<LINK>) 
 
 
