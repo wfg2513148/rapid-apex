@@ -127,7 +127,7 @@ sqlplus sys/oracle@YOUR_REMOTE_SERVER_IP:YOUR_DB_PORT/XEPDB1 as sysdba
 - **ORDS config file:** `/root/rapid-apex/oracle-ords/`
 
 
-# Conclusion
+# The End
 
 > Now you are free from APEX installation and are able to quickly deploy a test environment with different version of APEX/ORDS. 
 > If you like this, just star me!! [https://github.com/wfg2513148/rapid-apex](https://github.com/wfg2513148/rapid-apex)
