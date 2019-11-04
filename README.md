@@ -7,7 +7,7 @@
 
 > Supported Product List:
 > - **Oracle Database:** XE 18c
-> - **Oracle APEX:** 19.1, 18.2, 18.1, 5.1.4, 5.0.4
+> - **Oracle APEX:** 19.2, 19.1, 18.2, 18.1, 5.1.4, 5.0.4
 > - **Oracle ORDS:** 19.2, 18.4, 18.2, 18.1, 3.0.12
 
 
