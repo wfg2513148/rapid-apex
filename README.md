@@ -18,20 +18,20 @@
 
 > Click "Generate New APEX Instance" button
 
-![](images/20190926221241.png)
+![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190926221241.png)
 
 ## Base Information Collection
 
 > In the popup dialog, input your **remote machine IP address**, **installation path** and **OS version**
 
-![](images/20190926222346.png)
+![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190926222346.png)
 
 
 ## Database Information Collection
 
 > Complete database information collection. 
 
-![](images/20190929131529.png)
+![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190929131529.png)
 
 > Currently **Oracle Database XE 18c** is supported only. 
 
@@ -43,11 +43,11 @@
 
 ## APEX Information Collection
 
-![](images/20190929131648.png)
+![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190929131648.png)
 
 ## ORDS Information Collection
 
-![](images/20190929131726.png)
+![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190929131726.png)
 
 
 ## Congratulations!!
@@ -59,7 +59,7 @@
 > Of course you can click "**Finish**" button on the right top of page to save your configuration. 
 
 
-![](images/20190927130215.png)
+![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190927130215.png)
 
 
 # Install Your New APEX Instance
@@ -68,15 +68,15 @@
 
 > Copy above generated commands and paste to terminal window of your remote server. 
 
-![](images/20190926223113.png)
+![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190926223113.png)
 
 > The installation process may take <u>30 minites or several hours</u> since it will download installation media from my AWS S3 bucket (East Asia), build docker images of database & ORDS and startup them automatically. 
 > You can get a cup of coffie and walk around, if everything goes right, finally you will come to below screen. 
 
-![](images/20190928074719.png)
+![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190928074719.png)
 
 # Verify Your New APEX Instance
-## Check Docker Images/Container
+## Check Docker https://github.com/wfg2513148/rapid-apex/blob/dev/images/Container
 
 > Two docker containers will be running and both of them should be 'healthy'.
 
@@ -84,7 +84,7 @@
 docker ps -a
 ```
 
-![](images/20190927130445.png)
+![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190927130445.png)
 
 > You will get four docker images. 
 
@@ -92,16 +92,16 @@ docker ps -a
 docker images
 ```
 
-![](images/20190927130654.png)
+![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190927130654.png)
 
 
 ## Login APEX
 
 > Now you can test if your new APEX is ready for you. Access the APEX admin url and test it. In my case, it will be similar as below:
 
-![](images/20190926230438.png)
+![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190926230438.png)
 
-![](images/20190927124836.png)
+![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190927124836.png)
 
 ## Connect to Oracle Database
 ### Connect database in docker container
