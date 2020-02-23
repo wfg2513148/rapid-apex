@@ -2,6 +2,7 @@
 
 
 
+
 > [Rapid-APEX](https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX) is a tool taht allow you to quickly deploy a test environment of Oracle database, APEX and ORDS in docker. It will be very useful specially when you need a testing APEX environment but different product versions. 
 
 > Supported Product List:
@@ -76,7 +77,7 @@
 ![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190928074719.png)
 
 # Verify Your New APEX Instance
-## Check Docker https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/Container
+## Check Docker Images/Container
 
 > Two docker containers will be running and both of them should be 'healthy'.
 
