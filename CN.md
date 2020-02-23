@@ -19,19 +19,19 @@
 
 > 点击 "Generate New APEX Instance" 按钮
 
-![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190926221241.png)
+![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190926221241.png)
 
 ## 基本信息收集
 
 > 在弹出窗口中，输入 **要安装的服务器IP地址**, **要安装的路径** and **操作系统版本**等信息。
 
-![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190926222346.png)
+![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190926222346.png)
 
 
 ## 数据库信息收集
 
 
-![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190929131529.png)
+![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190929131529.png)
 
 > 当前只有 **Oracle Database XE 18c** 
 
@@ -43,11 +43,11 @@
 
 ## APEX 信息收集
 
-![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190929131648.png)
+![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190929131648.png)
 
 ## ORDS 信息收集
 
-![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190929131726.png)
+![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190929131726.png)
 
 
 ## 恭喜!!
@@ -59,7 +59,7 @@
 > - 点击"**Finish**"按钮保存你的配置。 
 
 
-![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190927130215.png)
+![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190927130215.png)
 
 
 # 安装你的新APEX实例
@@ -67,12 +67,12 @@
 ## 执行安装命令
 
 
-![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190926223113.png)
+![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190926223113.png)
 
 > 整个安装过程可能持续几十分钟到几个小时（这取决于你的安装介质下载的速度）。 
 > 如果一切顺利，你将看到以下提示。 
 
-![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190928074719.png)
+![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190928074719.png)
 
 # 验证你的新的APEX实例
 ## 检查Docker镜像/容器状态
@@ -83,7 +83,7 @@
 docker ps -a
 ```
 
-![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190927130445.png)
+![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190927130445.png)
 
 > 默认生成的docker镜像；
 
@@ -91,16 +91,16 @@ docker ps -a
 docker images
 ```
 
-![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190927130654.png)
+![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190927130654.png)
 
 
 ## 登录你的APEX实例
 
 > 现在可以测试新生成的APEX实例了，输入你当时设置的连接信息，例如：
 
-![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190926230438.png)
+![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190926230438.png)
 
-![](https://github.com/wfg2513148/rapid-apex/blob/dev/images/20190927124836.png)
+![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190927124836.png)
 
 > 如果一切正常的话，应该可以登录你的APEX实例了。
 
