@@ -16,6 +16,8 @@ WORKDIR ${ORDS_DIR}
 
 COPY ["files/ords-*.zip", "files/apache-tomcat*.zip", "scripts/*", "/tmp/"]
 
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
+
 RUN apk add --update curl
 
 RUN echo "" && \
