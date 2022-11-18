@@ -32,7 +32,7 @@ VOLUME ["/ords/apex-images", "/opt/ords"]
 
 EXPOSE 8080
 
-HEALTHCHECK --start-period=30s --interval=5s --retries=5 --timeout=300s CMD curl --fail http://localhost:8080/ords || exit 1
+HEALTHCHECK --start-period=60s --interval=10s --retries=3 --timeout=300s CMD curl --fail http://localhost:8080/ords || exit 1
 
 CMD ["run"]
 
