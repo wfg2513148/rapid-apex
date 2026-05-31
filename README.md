@@ -1,134 +1,164 @@
-# Rapid-APEX ([English](https://github.com/wfg2513148/rapid-apex) [中文](https://github.com/wfg2513148/rapid-apex/blob/master/CN.md))
+# Rapid-APEX
 
+[English](https://github.com/wfg2513148/rapid-apex) | [中文](https://github.com/wfg2513148/rapid-apex/blob/master/CN.md)
 
+Rapid-APEX is an MIT-licensed open-source toolkit for quickly provisioning reproducible Oracle Database, Oracle APEX, and ORDS environments with Docker.
 
+It is designed for Oracle APEX developers, trainers, consultants, and maintainers who need disposable test environments across different APEX and ORDS versions for learning, demos, upgrade testing, troubleshooting, and extension development.
 
-> [Rapid-APEX](https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX) is a tool taht allow you to quickly deploy a test environment of Oracle database, APEX and ORDS in docker. It will be very useful specially when you need a testing APEX environment but different product versions. 
+> Project status: Rapid-APEX is being refreshed as a maintainer-led open-source project. The original automation supports Oracle Database XE 18c with multiple APEX and ORDS versions. The current roadmap focuses on modernizing the Docker workflow, adding validation, and supporting newer Oracle APEX and ORDS releases.
 
-> Supported Product List:
-> - **Oracle Database:** XE 18c
-> - **Oracle APEX:** 19.2, 19.1, 18.2, 18.1, 5.1.4, 5.0.4
-> - **Oracle ORDS:** 19.2, 18.4, 18.2, 18.1, 3.0.12
+## Why Rapid-APEX exists
 
+Setting up Oracle Database, Oracle APEX, and ORDS manually can be time-consuming and error-prone, especially when developers need to compare versions, reproduce issues, or prepare temporary training environments.
 
-# Create Your New APEX Instance
+Rapid-APEX provides a reproducible Docker-based workflow so developers can focus on building and validating APEX applications instead of repeatedly assembling infrastructure by hand.
 
-## Get Installation Commands
+## Supported Product List
 
-[https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX](https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX)
+Current legacy automation supports:
 
-> Click "Generate New APEX Instance" button
+- **Oracle Database:** XE 18c
+- **Oracle APEX:** 19.2, 19.1, 18.2, 18.1, 5.1.4, 5.0.4
+- **Oracle ORDS:** 19.2, 18.4, 18.2, 18.1, 3.0.12
+
+## Maintainer Roadmap
+
+Rapid-APEX is being refreshed to better serve the Oracle APEX developer community.
+
+Planned improvements:
+
+- Add support for recent Oracle APEX, ORDS, and Oracle Database versions
+- Modernize Docker build scripts and runtime configuration
+- Add GitHub Actions validation for shell scripts and Dockerfiles
+- Improve installation documentation and troubleshooting guides
+- Provide reproducible examples for APEX training, demos, and extension development
+- Review legacy scripts for security, portability, and maintainability
+- Create a clearer contribution path for other Oracle APEX developers
+
+## Create Your New APEX Instance
+
+### Get Installation Commands
+
+Visit the Rapid-APEX generator:
+
+<https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX>
+
+Click **Generate New APEX Instance**.
 
 ![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190926221241.png)
 
-## Base Information Collection
+### Base Information Collection
 
-> In the popup dialog, input your **remote machine IP address**, **installation path** and **OS version**
+In the popup dialog, enter your **remote machine IP address**, **installation path**, and **OS version**.
 
 ![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190926222346.png)
 
+### Database Information Collection
 
-## Database Information Collection
-
-> Complete database information collection. 
+Complete the database information collection step.
 
 ![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190929131529.png)
 
-> Currently **Oracle Database XE 18c** is supported only. 
+Currently **Oracle Database XE 18c** is supported by the legacy automation.
 
-> Three download options are acceptable:
-> 1. **quick selection**: this will download installation file from default online storage `AWS S3 (East Asia)`;
-> 2. **Provide valid full download url address**: provide such format if you have, "`https://mybucket.s3.ap-northeast-1.amazonaws.com/oracle-database-xe-18c-1.0-1.x86_64.rpm`"
-> 3. **Provide valid full path which you have already downloaded**: such as "`/root/oracle-database-xe-18c-1.0-1.x86_64.rpm`"
+Three download options are supported:
 
+1. **Quick selection**: download installation files from the default online storage, `AWS S3 (East Asia)`.
+2. **Provide a valid full download URL**: for example, `https://mybucket.s3.ap-northeast-1.amazonaws.com/oracle-database-xe-18c-1.0-1.x86_64.rpm`.
+3. **Provide a valid local file path**: for example, `/root/oracle-database-xe-18c-1.0-1.x86_64.rpm`.
 
-## APEX Information Collection
+### APEX Information Collection
 
 ![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190929131648.png)
 
-## ORDS Information Collection
+### ORDS Information Collection
 
 ![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190929131726.png)
 
+### Finish
 
-## Congratulations!!
+After the generator completes, copy the generated commands, paste them into a terminal on your target server, and press **Enter** to start the installation process.
 
-> Now you have finished the most difficult part, what you need to do in next step is: 
-> - **copy** generated commands,
-> - **paste** it into a terminal window,
-> - enter "**return**" key to trigger installation process;
-> Of course you can click "**Finish**" button on the right top of page to save your configuration. 
-
+You can also click **Finish** in the top-right corner of the page to save your configuration.
 
 ![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190927130215.png)
 
+## Install Your New APEX Instance
 
-# Install Your New APEX Instance
+### Execute Installation Commands
 
-## Execute Installation Commands
-
-> Copy above generated commands and paste to terminal window of your remote server. 
+Copy the generated commands and paste them into a terminal window on your remote server.
 
 ![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190926223113.png)
 
-> The installation process may take <u>30 minites or several hours</u> since it will download installation media from my AWS S3 bucket (East Asia), build docker images of database & ORDS and startup them automatically. 
-> You can get a cup of coffie and walk around, if everything goes right, finally you will come to below screen. 
+The installation process may take **30 minutes to several hours** because it downloads installation media, builds Docker images for the database and ORDS, and starts the containers automatically.
+
+If everything goes well, you will see a result similar to the following screenshot.
 
 ![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190928074719.png)
 
-# Verify Your New APEX Instance
-## Check Docker Images/Container
+## Verify Your New APEX Instance
 
-> Two docker containers will be running and both of them should be 'healthy'.
+### Check Docker Images and Containers
 
-```
+Two Docker containers should be running and both should be healthy.
+
+```bash
 docker ps -a
 ```
 
 ![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190927130445.png)
 
-> You will get four docker images. 
+You should also see four Docker images.
 
-```
+```bash
 docker images
 ```
 
 ![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190927130654.png)
 
+### Login to APEX
 
-## Login APEX
-
-> Now you can test if your new APEX is ready for you. Access the APEX admin url and test it. In my case, it will be similar as below:
+Access the APEX administrator URL and verify that the environment is ready.
 
 ![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190926230438.png)
 
 ![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190927124836.png)
 
-## Connect to Oracle Database
-### Connect database in docker container
+### Connect to Oracle Database
 
-In my above example, the connection string likes as below: 
+#### Connect to the database from inside the Docker container
 
-- **CDB:** `sqlplus sys/oracle123@47.98.247.100:1521/XE as sysdba`
-- **PDB:** `sqlplus sys/oracle123@47.98.247.100:1521/XEPDB1 as sysdba`
+Example connection strings:
 
+- **CDB:** `sqlplus sys/<db-password>@YOUR_REMOTE_SERVER_IP:1521/XE as sysdba`
+- **PDB:** `sqlplus sys/<db-password>@YOUR_REMOTE_SERVER_IP:1521/XEPDB1 as sysdba`
 
-### Connect database out of docker container
+#### Connect to the database from outside the Docker container
 
+```bash
+sqlplus sys/<db-password>@YOUR_REMOTE_SERVER_IP:YOUR_DB_PORT/XE as sysdba
+sqlplus sys/<db-password>@YOUR_REMOTE_SERVER_IP:YOUR_DB_PORT/XEPDB1 as sysdba
 ```
-sqlplus sys/oracle@YOUR_REMOTE_SERVER_IP:YOUR_DB_PORT/XE as sysdba
-sqlplus sys/oracle@YOUR_REMOTE_SERVER_IP:YOUR_DB_PORT/XEPDB1 as sysdba
-```
 
+### Review or Modify Configuration
 
-## Review/Modify Configuration if necessary
+- **DB data files:** `/root/rapid-apex/oradata/`
+- **ORDS configuration files:** `/root/rapid-apex/oracle-ords/`
 
-- **DB Data File:** `/root/rapid-apex/oradata/`
-- **ORDS config file:** `/root/rapid-apex/oracle-ords/`
+## Contributing
 
+Contributions are welcome, especially around newer Oracle APEX/ORDS support, Docker modernization, documentation, and validation workflows.
 
-# The End
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-> Now you are free from APEX installation and are able to quickly deploy a test environment with different version of APEX/ORDS. 
-> If you like this, just star me!! [https://github.com/wfg2513148/rapid-apex](https://github.com/wfg2513148/rapid-apex)
+## License
 
+Rapid-APEX is released under the [MIT License](LICENSE).
+
+## Maintainer
+
+Rapid-APEX is maintained by [Kenny Wang](https://github.com/wfg2513148), who also publishes Oracle APEX technical content for the Chinese-speaking developer community.
+
+If this project helps you, please consider starring the repository: <https://github.com/wfg2513148/rapid-apex>

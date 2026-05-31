@@ -1,0 +1,43 @@
+name: Validation
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  shell-syntax:
+    name: Shell syntax
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate shell script syntax
+        run: |
+          bash -n install.sh
+          bash -n run.sh
+          bash -n docker-xe/scripts/*.sh
+          bash -n docker-ords/scripts/*.sh
+
+  dockerfile-lint:
+    name: Dockerfile lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: docker-xe/Dockerfile
+          failure-threshold: error
+
+      - name: Run Hadolint for ORDS image
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: docker-ords/Dockerfile
+          failure-threshold: error
