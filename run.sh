@@ -99,5 +99,4 @@ fi;
 cd $repo_name/
 chmod +x install.sh
 
-./install.sh $quick_install $docker_network $db_file_name $db_version $db_sys_pwd $db_port $em_port $apex_file_name $apex_version $apex_admin_username $apex_admin_pwd $apex_admin_email $ords_file_name $ords_version $ords_port
-
+./install.sh $quick_install $docker_network $db_file_name $db_version $db_sys_pwd $db_port $em_port $apex_file_name $apex_version $apex_admin_username $apex_admin_pwd $apex_admin_email $ords_file_name $ords_version $ords_port $ip_address

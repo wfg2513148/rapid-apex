@@ -1,0 +1,8 @@
+.rapid-apex/
+apex/
+oradata/
+oracle-ords/
+docker-xe/files/*
+!docker-xe/files/.gitkeep
+docker-ords/files/*
+!docker-ords/files/.gitkeep

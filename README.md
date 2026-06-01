@@ -16,11 +16,16 @@ Rapid-APEX provides a reproducible Docker-based workflow so developers can focus
 
 ## Supported Product List
 
-Current legacy automation supports:
+Current version catalog supports:
 
-- **Oracle Database:** XE 18c
-- **Oracle APEX:** 19.2, 19.1, 18.2, 18.1, 5.1.4, 5.0.4
-- **Oracle ORDS:** 19.2, 18.4, 18.2, 18.1, 3.0.12
+- **Oracle Database:** XE 18c, 19c Enterprise, 26ai Free, 26ai Enterprise
+- **Oracle APEX:** 26.1, 24.2, 24.1, 23.2, 23.1, 22.2, 22.1, 21.2, 21.1, 20.2, 20.1, 19.2, 19.1, 18.2, 18.1, 5.1.4, 5.0.4
+- **Oracle ORDS:** 26.x, 25.x, 24.x, 23.x, 22.x, 21.x, 20.x, 19.2, 18.4, 18.2, 18.1, 3.0.12
+
+The original installer path remains the legacy XE 18c flow. Newer database and
+ORDS families are recognized by the version catalog and should be implemented
+through explicit modern installer paths. See
+[`docs/version-support.md`](docs/version-support.md).
 
 ## Maintainer Roadmap
 
@@ -35,6 +40,58 @@ Planned improvements:
 - Provide reproducible examples for APEX training, demos, and extension development
 - Review legacy scripts for security, portability, and maintainability
 - Create a clearer contribution path for other Oracle APEX developers
+
+## CLI Preview
+
+The new CLI is being introduced as the stable front door for one-stop APEX lab
+creation. It currently supports version discovery, profile validation,
+preflight checks, environment status/log helpers, cleanup, and dry-run
+installation plans.
+
+```bash
+bin/rapid-apex list-versions
+bin/rapid-apex validate --db 26ai --apex 26.1 --ords 26
+bin/rapid-apex plan --db 26ai --apex 26.1 --ords 26 --name apex261-lab
+bin/rapid-apex preflight --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex install --dry-run --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex status --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex logs --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex smoke --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex browser-smoke --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex destroy --profile profiles/26ai-apex261-ords26.env
+```
+
+Database installs use the `demo` license policy by default, which allows Oracle
+XE and Free editions. Enterprise Edition profiles are BYOL targets and require
+explicit acknowledgement because the user must have valid Oracle license/terms:
+
+```bash
+bin/rapid-apex plan --db 19c --apex 24.2 --ords 25 --license-policy byol
+bin/rapid-apex plan --db 26ai-ee --apex 26.1 --ords 26 --license-policy byol
+```
+
+`e2e` is the scripted end-to-end path: it runs preflight checks, installation,
+container status, HTTP smoke validation, and a real browser flow that logs in to
+the `demo` workspace, creates a new APEX application, and logs in to the
+generated application with `demo/demo`. Browser evidence is written under
+`.rapid-apex/evidence/<lab-name>/` by default. Add `--destroy-after` only when
+the lab should be stopped after validation, and add `--purge-data` when the
+generated lab data directory should also be removed.
+
+Rapid-APEX prefers Oracle official container images from Oracle Container
+Registry for Database and ORDS. The legacy Dockerfile build path remains as a
+fallback for older combinations that do not have an official image path.
+ORDS official-image plans use pinned major-version tags instead of `latest`;
+use `--ords-image-tag TAG` when a lab needs a specific Oracle-published patch
+tag for that ORDS major.
+Enterprise Database image plans can also be overridden with `--db-image IMAGE`
+when Oracle publishes a different authorized tag for the selected major version.
+
+Full execution is currently enabled for the legacy 18c XE + ORDS 3/18/19/20/21
+family while modern official-image paths are being implemented. Legacy installs
+create a `demo` workspace and `demo` developer account with password `demo` for
+browser-based validation.
 
 ## Create Your New APEX Instance
 
@@ -60,7 +117,8 @@ Complete the database information collection step.
 
 ![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190929131529.png)
 
-Currently **Oracle Database XE 18c** is supported by the legacy automation.
+The legacy automation path currently installs **Oracle Database XE 18c**.
+Database 19c and 26ai are tracked in the version catalog for modernization work.
 
 Three download options are supported:
 

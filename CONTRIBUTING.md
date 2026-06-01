@@ -11,6 +11,7 @@ High-value contribution areas include:
 - Support for newer Oracle APEX releases
 - Support for newer ORDS releases
 - Support for newer Oracle Database XE / Free versions
+- Updates to `tools/version-matrix.sh` and `docs/version-support.md` when version support changes
 - Dockerfile modernization and hardening
 - Shell script portability and error handling
 - GitHub Actions validation
@@ -36,6 +37,8 @@ bash -n install.sh
 bash -n run.sh
 bash -n docker-xe/scripts/*.sh
 bash -n docker-ords/scripts/*.sh
+bash tests/test_version_matrix.sh
+bash tests/test_rapid_apex_cli.sh
 ```
 
 If available locally, also run:

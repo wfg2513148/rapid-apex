@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
+
+# shellcheck source=../lib/rapid-apex-cli.sh
+. "$ROOT_DIR/lib/rapid-apex-cli.sh"
+
+rapid_apex_main "$@"

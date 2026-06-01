@@ -5,10 +5,45 @@
 > [Oracle APEX](https://apex.oracle.com/zh-cn/) 的安装过程比较繁琐，涉及到东西比较多，特别是在结合ORDS时，总是容易犯错。另外，如果你想快速搭建一套测试环境，但需要特定版本的APEX/ORDS来验证测试某些功能时，每次重新搭环境也会浪费不少时间。
 > [Rapid-APEX](https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX) 是可以让你从重复繁琐的安装过程中解脱出来，通过简单地设置你要搭建的环境信息，就可以生成对应的安装命令，直接执行即可完成相应的安装配置。
 
-> 目前支持的产品版本:
-> - **Oracle Database:** XE 18c
-> - **Oracle APEX:** 19.2, 19.1, 18.2, 18.1, 5.1.4, 5.0.4
-> - **Oracle ORDS:** 19.2, 18.4, 18.2, 18.1, 3.0.12
+> 当前版本目录支持的产品版本:
+> - **Oracle Database:** XE 18c, 19c Enterprise, 26ai Free, 26ai Enterprise
+> - **Oracle APEX:** 26.1, 24.2, 24.1, 23.2, 23.1, 22.2, 22.1, 21.2, 21.1, 20.2, 20.1, 19.2, 19.1, 18.2, 18.1, 5.1.4, 5.0.4
+> - **Oracle ORDS:** 26.x, 25.x, 24.x, 23.x, 22.x, 21.x, 20.x, 19.2, 18.4, 18.2, 18.1, 3.0.12
+>
+> 原始安装脚本仍是 Oracle Database XE 18c 的 legacy 链路。19c、26ai 以及新版 ORDS 的完整安装链路会按版本目录继续现代化实现。
+
+# CLI 预览
+
+新的 CLI 会作为一站式 APEX demo/test 环境的统一入口。目前已支持版本查看、profile 校验、安装前检查、状态/日志/清理辅助命令和 dry-run 安装计划。
+
+```bash
+bin/rapid-apex list-versions
+bin/rapid-apex validate --db 26ai --apex 26.1 --ords 26
+bin/rapid-apex plan --db 26ai --apex 26.1 --ords 26 --name apex261-lab
+bin/rapid-apex preflight --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex install --dry-run --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex status --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex logs --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex smoke --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex browser-smoke --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex destroy --profile profiles/26ai-apex261-ords26.env
+```
+
+默认数据库安装策略是 `demo`，只允许 Oracle XE 或 Free 版本。Enterprise Edition 场景统一视为 BYOL 目标，需要显式确认用户已具备有效 Oracle license/terms：
+
+```bash
+bin/rapid-apex plan --db 19c --apex 24.2 --ords 25 --license-policy byol
+bin/rapid-apex plan --db 26ai-ee --apex 26.1 --ords 26 --license-policy byol
+```
+
+`e2e` 是脚本化端到端链路：会依次执行 preflight、安装、容器状态检查、HTTP smoke 检查，以及真实浏览器验证。浏览器验证会登录 `demo` workspace，创建一个新的 APEX application，并用 `demo/demo` 登录新应用。默认截图证据会写入 `.rapid-apex/evidence/<lab-name>/`。只有需要验证后停止环境时才加 `--destroy-after`；如果连生成的数据目录也要删除，再加 `--purge-data`。
+
+Rapid-APEX 会优先使用 Oracle Container Registry 上的 Oracle 官方 Database / ORDS 镜像。旧 Dockerfile 构建链路只作为没有官方镜像路径时的 fallback。
+新版 ORDS 官方镜像计划默认使用固定的大版本 tag，不再漂移到 `latest`；如果需要指定 Oracle 已发布的具体补丁 tag，可以使用 `--ords-image-tag TAG` 覆盖。
+企业版数据库镜像也可以通过 `--db-image IMAGE` 覆盖，适配 Oracle 针对特定大版本发布的授权镜像 tag。
+
+当前真实执行链路先支持 legacy 18c XE + ORDS 3/18/19/20/21 组合，现代官方镜像链路继续补齐。legacy 安装会自动创建 `demo` workspace 和 `demo/demo` 开发者账号，用于真实浏览器验收。
 
 
 # 创建新的APEX实例

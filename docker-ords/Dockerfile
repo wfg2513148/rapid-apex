@@ -1,5 +1,6 @@
 # Original source from https://github.com/lucassampsouza/ords_apex
-FROM openjdk:8-jre-alpine
+ARG JAVA_BASE_IMAGE=openjdk:8-jre-alpine
+FROM ${JAVA_BASE_IMAGE}
 LABEL maintainer="Kenny Wang <wfgdlut@gmail.com>"
 
 ENV TZ="Asia/Shanghai" \
@@ -35,5 +36,4 @@ EXPOSE 8080
 HEALTHCHECK --start-period=60s --interval=10s --retries=3 --timeout=300s CMD curl --fail http://localhost:8080/ords || exit 1
 
 CMD ["run"]
-
 

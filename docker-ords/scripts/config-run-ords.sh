@@ -26,6 +26,12 @@ else
 	echo "$ORDS_CONFIG_FILE not found. Installing ORDS"
 	echo "Generating ords_params.properties"
 
+	if [ "${ORDS_INSTALL_FAMILY:-legacy-simple}" = "modern-cli" ]; then
+		echo "ORDS modern-cli installer family is recognized but not implemented in this legacy runtime script."
+		echo "Add a dedicated ORDS 22+ command path before running this profile."
+		exit 2
+	fi
+
 	# Clear file
 	> $PARAM_FILE 
 
@@ -75,5 +81,4 @@ else
 
 	java -jar ords.war install simple --parameterFile $PARAM_FILE
 fi
-
 

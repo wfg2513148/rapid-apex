@@ -23,6 +23,12 @@ jobs:
           bash -n docker-xe/scripts/*.sh
           bash -n docker-ords/scripts/*.sh
 
+      - name: Validate version matrix
+        run: bash tests/test_version_matrix.sh
+
+      - name: Validate CLI
+        run: bash tests/test_rapid_apex_cli.sh
+
   dockerfile-lint:
     name: Dockerfile lint
     runs-on: ubuntu-latest
