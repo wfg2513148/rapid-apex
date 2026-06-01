@@ -1,6 +1,6 @@
 # Original source file comes from https://github.com/fuzziebrain/docker-oracle-xe
-FROM oraclelinux:7-slim as xe
-LABEL MAINTAINER="Kenny Wang <wfgdlut@gmail.com>"
+FROM oraclelinux:7-slim AS xe
+LABEL maintainer="Kenny Wang <wfgdlut@gmail.com>"
 
 ARG DB_SYS_PWD=oracle
 ARG DB_FILE=oracle-database-xe-18c-1.0-1.x86_64.rpm
@@ -24,6 +24,8 @@ ENV \
     
 COPY ./files/${ORACLE_XE_RPM} /tmp/
 
+# Oracle RPM dependency versions are controlled by the selected legacy XE media.
+# hadolint ignore=DL3033
 RUN yum install -y oracle-database-preinstall-18c && \
   yum install -y /tmp/${ORACLE_XE_RPM} && \
   rm -rf /tmp/${ORACLE_XE_RPM}
@@ -41,8 +43,7 @@ VOLUME [ "${ORACLE_BASE}/oradata" ]
 HEALTHCHECK --interval=1m --start-period=2m --retries=10 \
   CMD "$ORACLE_BASE/scripts/$CHECK_DB_FILE"
 
-CMD exec ${ORACLE_BASE}/scripts/${RUN_FILE}
-
+CMD ["/bin/bash", "-lc", "exec ${ORACLE_BASE}/scripts/${RUN_FILE}"]
 
 
 
