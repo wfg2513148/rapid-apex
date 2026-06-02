@@ -174,6 +174,39 @@ async function submitCreateApplication(page) {
   throw new Error('Create Application action did not become enabled');
 }
 
+async function advanceCreateApplicationTypeStep(page) {
+  const hasAppNameInput = await page.locator('#P1_APP_NAME, #P56_APP_NAME, input[name="P1_APP_NAME"], input[name="P56_APP_NAME"], input[id$="_APP_NAME"], input[name$="_APP_NAME"]').count();
+  if (hasAppNameInput) {
+    return;
+  }
+
+  const bodyText = await page.locator('body').innerText({ timeout: 5000 }).catch(() => '');
+  if (!/What type of application would you like to create\?|New Application/i.test(bodyText)) {
+    return;
+  }
+
+  const nextAction = await visibleLocator(page, [
+    'button:has-text("Next")',
+    'a:has-text("Next")',
+    'input[type="button"][value="Next"]',
+    'input[type="submit"][value="Next"]',
+  ]);
+  await Promise.all([
+    page.waitForLoadState('domcontentloaded').catch(() => {}),
+    nextAction.click(),
+  ]);
+  await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
+}
+
+async function confirmCreateApplicationIfNeeded(page) {
+  const bodyText = await page.locator('body').innerText({ timeout: 5000 }).catch(() => '');
+  if (!/Please confirm your selections/i.test(bodyText)) {
+    return;
+  }
+
+  await submitCreateApplication(page);
+}
+
 async function waitForApplicationCreationComplete(page) {
   const createPageUrl = page.url();
   const completed = await page.waitForFunction((initialUrl) => {
@@ -184,6 +217,9 @@ async function waitForApplicationCreationComplete(page) {
     const bodyText = document.body?.innerText || '';
     if (/Application\s+\d+\s+does not exist in the current workspace/i.test(bodyText)) {
       return true;
+    }
+    if (/Please confirm your selections/i.test(bodyText)) {
+      return false;
     }
     return window.location.href !== initialUrl
       && /Application\s+\d+|Run Application|Edit Application Definition/i.test(bodyText);
@@ -389,6 +425,8 @@ async function createApplication(page, opts) {
     }
   }
 
+  await advanceCreateApplicationTypeStep(page);
+
   try {
     const appNameInput = await visibleLocator(page, [
       '#P1_APP_NAME',
@@ -434,6 +472,7 @@ async function createApplication(page, opts) {
   await saveHtml(page, opts.evidenceDir, 'create-application-before');
   await waitForApexSubmit(page);
   await submitCreateApplication(page);
+  await confirmCreateApplicationIfNeeded(page);
   await waitForApplicationCreationComplete(page);
   await page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
   await screenshot(page, opts.evidenceDir, 'create-application-after');
@@ -525,7 +564,13 @@ async function loginGeneratedApplication(page, opts, app) {
       await clickFirst(page, [
         'button:has-text("Sign In")',
         'button:has-text("Sign in")',
+        'button:has-text("Log In")',
+        'button:has-text("Log in")',
         'button[type="submit"]',
+        'input[type="submit"][value="Sign In"]',
+        'input[type="submit"][value="Log In"]',
+        'input[type="button"][value="Sign In"]',
+        'input[type="button"][value="Log In"]',
       ]);
       await page.waitForURL((url) => !/4550|workspace-sign-in/i.test(url.toString()), { timeout: 60000 }).catch(() => {});
       await page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
@@ -537,7 +582,7 @@ async function loginGeneratedApplication(page, opts, app) {
       afterLoginUrl: page.url(),
       afterLoginSnippet: bodyText.replace(/\s+/g, ' ').trim().slice(0, 220),
     };
-    if (/Sign in|Workspace\s+Username\s+Password/i.test(bodyText)
+    if (/Sign in|Log In|Workspace\s+Username\s+Password/i.test(bodyText)
         || isInvalidGeneratedAppPage(bodyText)
         || isBuilderApplicationPage(page, bodyText, app.appId)) {
       continue;

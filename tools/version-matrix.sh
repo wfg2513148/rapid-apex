@@ -34,31 +34,37 @@ rapid_apex_supported_ords_versions() {
     26 26.x
 }
 
-rapid_apex_list_contains() {
-  local wanted="$1"
-  shift
-  local value
-  for value in "$@"; do
-    if [[ "$value" == "$wanted" ]]; then
-      return 0
-    fi
-  done
-  return 1
-}
-
 rapid_apex_is_supported_db_version() {
   local version="$1"
-  rapid_apex_list_contains "$version" $(rapid_apex_supported_db_versions)
+  local supported_version
+  while IFS= read -r supported_version; do
+    if [[ "$supported_version" == "$version" ]]; then
+      return 0
+    fi
+  done < <(rapid_apex_supported_db_versions)
+  return 1
 }
 
 rapid_apex_is_supported_apex_version() {
   local version="$1"
-  rapid_apex_list_contains "$version" $(rapid_apex_supported_apex_versions)
+  local supported_version
+  while IFS= read -r supported_version; do
+    if [[ "$supported_version" == "$version" ]]; then
+      return 0
+    fi
+  done < <(rapid_apex_supported_apex_versions)
+  return 1
 }
 
 rapid_apex_is_supported_ords_version() {
   local version="$1"
-  rapid_apex_list_contains "$version" $(rapid_apex_supported_ords_versions)
+  local supported_version
+  while IFS= read -r supported_version; do
+    if [[ "$supported_version" == "$version" ]]; then
+      return 0
+    fi
+  done < <(rapid_apex_supported_ords_versions)
+  return 1
 }
 
 rapid_apex_db_family() {
@@ -105,13 +111,13 @@ rapid_apex_ords_major() {
     3.0.12) printf '%s\n' 3 ;;
     18.*) printf '%s\n' 18 ;;
     19.*) printf '%s\n' 19 ;;
-    20|20.*|20.x) printf '%s\n' 20 ;;
-    21|21.*|21.x) printf '%s\n' 21 ;;
-    22|22.*|22.x) printf '%s\n' 22 ;;
-    23|23.*|23.x) printf '%s\n' 23 ;;
-    24|24.*|24.x) printf '%s\n' 24 ;;
-    25|25.*|25.x) printf '%s\n' 25 ;;
-    26|26.*|26.x) printf '%s\n' 26 ;;
+    20|20.*) printf '%s\n' 20 ;;
+    21|21.*) printf '%s\n' 21 ;;
+    22|22.*) printf '%s\n' 22 ;;
+    23|23.*) printf '%s\n' 23 ;;
+    24|24.*) printf '%s\n' 24 ;;
+    25|25.*) printf '%s\n' 25 ;;
+    26|26.*) printf '%s\n' 26 ;;
     *) return 1 ;;
   esac
 }

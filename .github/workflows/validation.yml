@@ -29,6 +29,25 @@ jobs:
       - name: Validate CLI
         run: bash tests/test_rapid_apex_cli.sh
 
+  shellcheck:
+    name: ShellCheck modern scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck
+        run: |
+          shellcheck -x --severity=warning \
+            bin/rapid-apex \
+            lib/rapid-apex-cli.sh \
+            tools/version-matrix.sh \
+            tests/test_version_matrix.sh \
+            tests/test_rapid_apex_cli.sh
+
   dockerfile-lint:
     name: Dockerfile lint
     runs-on: ubuntu-latest

@@ -43,7 +43,16 @@ Rapid-APEX 会优先使用 Oracle Container Registry 上的 Oracle 官方 Databa
 新版 ORDS 官方镜像计划默认使用固定的大版本 tag，不再漂移到 `latest`；如果需要指定 Oracle 已发布的具体补丁 tag，可以使用 `--ords-image-tag TAG` 覆盖。
 企业版数据库镜像也可以通过 `--db-image IMAGE` 覆盖，适配 Oracle 针对特定大版本发布的授权镜像 tag。
 
-当前真实执行链路先支持 legacy 18c XE + ORDS 3/18/19/20/21 组合，现代官方镜像链路继续补齐。legacy 安装会自动创建 `demo` workspace 和 `demo/demo` 开发者账号，用于真实浏览器验收。
+当前真实执行链路支持 legacy 18c XE + ORDS 3/18/19/20/21 组合，以及现代 Database + ORDS 官方镜像 profiles。legacy 和官方镜像安装都会自动创建 `demo` workspace 和 `demo/demo` 开发者账号，用于真实浏览器验收。
+
+已完成真实安装验证的 profile 范围包括：
+
+| Database | APEX | ORDS | Profile |
+| --- | --- | --- | --- |
+| 18c XE | 5.1.4, 18.2, 19.1, 20.2, 21.2 | 3.0.12, 18.4, 19.2, 20.x, 21.x | `profiles/18c-*` |
+| 26ai Free | 22.2, 23.2, 24.1, 26.1 | 22.x, 23.x, 24.x, 26.x | `profiles/26ai-*` |
+| 19c Enterprise BYOL | 22.1, 23.1, 24.2 | 23.x, 24.x, 25.x | `profiles/19c-*` |
+| 26ai Enterprise BYOL | 26.1 | 26.x | `profiles/26ai-ee-*` |
 
 
 # 创建新的APEX实例

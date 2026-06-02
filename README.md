@@ -89,9 +89,18 @@ Enterprise Database image plans can also be overridden with `--db-image IMAGE`
 when Oracle publishes a different authorized tag for the selected major version.
 
 Full execution is currently enabled for the legacy 18c XE + ORDS 3/18/19/20/21
-family while modern official-image paths are being implemented. Legacy installs
-create a `demo` workspace and `demo` developer account with password `demo` for
-browser-based validation.
+family and for modern official Database + ORDS image profiles. Legacy and
+official-image installs create a `demo` workspace and `demo` developer account
+with password `demo` for browser-based validation.
+
+Validated real-install profiles include:
+
+| Database | APEX | ORDS | Profile |
+| --- | --- | --- | --- |
+| 18c XE | 5.1.4, 18.2, 19.1, 20.2, 21.2 | 3.0.12, 18.4, 19.2, 20.x, 21.x | `profiles/18c-*` |
+| 26ai Free | 22.2, 23.2, 24.1, 26.1 | 22.x, 23.x, 24.x, 26.x | `profiles/26ai-*` |
+| 19c Enterprise BYOL | 22.1, 23.1, 24.2 | 23.x, 24.x, 25.x | `profiles/19c-*` |
+| 26ai Enterprise BYOL | 26.1 | 26.x | `profiles/26ai-ee-*` |
 
 ## Create Your New APEX Instance
 

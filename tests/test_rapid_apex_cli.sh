@@ -28,6 +28,11 @@ grep -q "Name: apex191-xe18c-lab" <<<"$profile_output"
 grep -q "Database: 18c (oracle-express-container, xe, official-oracle-image-preferred)" <<<"$profile_output"
 grep -q "ORDS: 19.2 (legacy-simple" <<<"$profile_output"
 
+for profile in "$ROOT_DIR"/profiles/*.env; do
+  "$CLI" validate --profile "$profile" >/dev/null
+  "$CLI" install --dry-run --profile "$profile" >/dev/null
+done
+
 override_output="$("$CLI" plan --profile "$ROOT_DIR/profiles/18c-apex191-ords192.env" --name override-lab --ords 21)"
 grep -q "Name: override-lab" <<<"$override_output"
 grep -q "ORDS: 21 (legacy-simple" <<<"$override_output"
@@ -35,6 +40,8 @@ grep -q "ORDS media: https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/
 
 ords20_output="$("$CLI" plan --db 18c --apex 20.2 --ords 20 --name ords20-lab)"
 grep -q "ORDS media: https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/ords-20.4.3.050.1904.zip" <<<"$ords20_output"
+ords3_output="$("$CLI" plan --db 18c --apex 5.1.4 --ords 3.0.12 --name ords3-lab)"
+grep -q "ORDS media: https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/ords-3.0.12.263.15.32.zip" <<<"$ords3_output"
 if grep -q "ords-20.x.zip\\|ords-21.x.zip" <<<"$override_output$ords20_output"; then
   echo "legacy ORDS plans must use concrete media filenames" >&2
   exit 1

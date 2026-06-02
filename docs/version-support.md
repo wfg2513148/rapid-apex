@@ -120,6 +120,24 @@ real browser application creation and login validation. Database 19c profiles
 require Oracle Container Registry access to an accepted BYOL image before
 preflight can pass.
 
+## Real Install Coverage
+
+The following profile families have passed scripted real-install validation with
+`bin/rapid-apex e2e --profile <profile> --destroy-after --purge-data` on the
+OCI Docker host recorded in the install test plans:
+
+| Database | APEX | ORDS | Profiles |
+| --- | --- | --- | --- |
+| 18c XE | 5.1.4, 18.2, 19.1, 20.2, 21.2 | 3.0.12, 18.4, 19.2, 20.x, 21.x | `profiles/18c-*` |
+| 26ai Free | 22.2, 23.2, 24.1, 26.1 | 22.x, 23.x, 24.x, 26.x | `profiles/26ai-*` |
+| 19c Enterprise BYOL | 22.1, 23.1, 24.2 | 23.x, 24.x, 25.x | `profiles/19c-*` |
+| 26ai Enterprise BYOL | 26.1 | 26.x | `profiles/26ai-ee-*` |
+
+See `docs/first-round-install-test-plan.md`,
+`docs/second-round-install-test-plan.md`, and
+`docs/third-round-install-test-plan.md` for command logs, evidence paths, and
+version-specific findings.
+
 ## Media Source
 
 The original scripts default to the historical public bucket. New automation
@@ -137,9 +155,17 @@ URLs that are not intended to be public.
 Run:
 
 ```bash
+bash -n install.sh
+bash -n run.sh
+bash -n docker-xe/scripts/*.sh
+bash -n docker-ords/scripts/*.sh
 bash tests/test_version_matrix.sh
 bash tests/test_rapid_apex_cli.sh
 ```
 
 This verifies that the requested Database, APEX, and ORDS versions are
 recognized and mapped to the expected installer families.
+
+GitHub Actions also runs ShellCheck on the modern Bash entrypoints and test
+scripts, plus Hadolint on both Dockerfiles. Legacy installer scripts remain
+under `bash -n` syntax validation unless a task explicitly modernizes them.

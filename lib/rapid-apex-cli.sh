@@ -240,7 +240,7 @@ rapid_apex_apex_download_url() {
 
 rapid_apex_ords_media_file() {
   case "$RAPID_APEX_ORDS_VERSION" in
-    3.0.12) printf '%s\n' ords.3.0.12.263.15.32.zip ;;
+    3.0.12) printf '%s\n' ords-3.0.12.263.15.32.zip ;;
     18.1) printf '%s\n' ords-18.1.1.95.1251.zip ;;
     18.2) printf '%s\n' ords-18.2.0.183.1748.zip ;;
     18.4) printf '%s\n' ords-18.4.0.354.1002.zip ;;
@@ -436,8 +436,10 @@ rapid_apex_pull_image_if_needed() {
 rapid_apex_prepare_apex_home() {
   local lab_dir="$1"
   local media_dir="$RAPID_APEX_ROOT_DIR/.rapid-apex/media"
-  local media_file="$media_dir/$(basename "$(rapid_apex_apex_download_url)")"
+  local media_file
   local apex_home="$lab_dir/apex"
+
+  media_file="$media_dir/$(basename "$(rapid_apex_apex_download_url)")"
 
   if [[ ! -f "$apex_home/apxsilentins.sql" ]]; then
     rm -rf "$lab_dir/apex-src" "$apex_home"
