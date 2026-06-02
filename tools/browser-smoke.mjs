@@ -103,55 +103,91 @@ async function waitForApexSubmit(page) {
 }
 
 async function waitForCreateApplicationEnabled(page) {
-  const appName = page.locator('#P1_APP_NAME, #P56_APP_NAME, input[name="P1_APP_NAME"], input[name="P56_APP_NAME"]').first();
-  if (await appName.count()) {
-    await appName.evaluate((element) => {
-      element.dispatchEvent(new Event('input', { bubbles: true }));
-      element.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'A' }));
-      element.dispatchEvent(new Event('change', { bubbles: true }));
-      element.blur();
-    }).catch(() => {});
+  for (const selector of ['#P1_APP_NAME, #P56_APP_NAME, input[name="P1_APP_NAME"], input[name="P56_APP_NAME"]', '#P1_APP_ID, #P56_APP_ID, #P56_APPLICATION_ID, input[name="P1_APP_ID"], input[name="P56_APP_ID"]']) {
+    const item = page.locator(selector).first();
+    if (await item.count()) {
+      await item.evaluate((element) => {
+        element.focus();
+        if (window.apex?.item && element.id) {
+          window.apex.item(element.id).setValue(element.value);
+        }
+        element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'A' }));
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+        element.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'A' }));
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+        element.blur();
+      }).catch(() => {});
+    }
   }
+  await page.evaluate(() => {
+    if (window.apex?.create_app_wizard?.handleCreateBtn) {
+      window.apex.create_app_wizard.handleCreateBtn();
+    }
+  }).catch(() => {});
   return page.waitForFunction(() => {
-    const button = document.querySelector('#CREATE_APP');
-    return !button || !button.disabled;
-  }, null, { timeout: 10000 })
+    const isEnabled = (element) => {
+      const style = window.getComputedStyle(element);
+      return !element.disabled
+        && element.getAttribute('aria-disabled') !== 'true'
+      && !/\bis-disabled\b|\bdisabled\b|\ba-Button--disabled\b/i.test(element.className || '')
+        && !/\bapex_disabled\b/i.test(element.className || '')
+        && style.pointerEvents !== 'none'
+        && style.visibility !== 'hidden'
+        && style.display !== 'none';
+    };
+    return Array.from(document.querySelectorAll('button, a, input[type="button"], input[type="submit"]'))
+      .some((element) => {
+        const text = `${element.textContent || ''} ${element.value || ''} ${element.getAttribute('aria-label') || ''}`;
+        return /Create Application|Create App/i.test(text) && isEnabled(element);
+      });
+  }, null, { timeout: 60000 })
     .then(() => true)
     .catch(() => false);
 }
 
 async function submitCreateApplication(page) {
   if (await waitForCreateApplicationEnabled(page)) {
-    await clickFirst(page, [
-      '#CREATE_APP',
-      'button:has-text("Create Application")',
-      'a:has-text("Create Application")',
-      'button:has-text("Create App")',
-      'a:has-text("Create App")',
-      'button:has-text("Create")',
-      'a:has-text("Create")',
-    ]);
+    await page.evaluate(() => {
+      const isEnabled = (element) => {
+        const style = window.getComputedStyle(element);
+        return !element.disabled
+          && element.getAttribute('aria-disabled') !== 'true'
+          && !/\bis-disabled\b|\bdisabled\b|\ba-Button--disabled\b/i.test(element.className || '')
+          && style.pointerEvents !== 'none'
+          && style.visibility !== 'hidden'
+          && style.display !== 'none';
+      };
+      const button = Array.from(document.querySelectorAll('button, a, input[type="button"], input[type="submit"]'))
+        .find((element) => {
+          const text = `${element.textContent || ''} ${element.value || ''} ${element.getAttribute('aria-label') || ''}`;
+          return /Create Application|Create App/i.test(text) && isEnabled(element);
+        });
+      if (!button) {
+        throw new Error('Create Application action was not enabled');
+      }
+      button.click();
+    });
+    await page.waitForLoadState('domcontentloaded').catch(() => {});
     return;
   }
 
-  await page.evaluate(() => {
-    if (window.apex && typeof window.apex.submit === 'function') {
-      window.apex.submit({ request: 'CREATE_APP', showWait: true });
-      return;
-    }
-    const form = document.querySelector('#wwvFlowForm');
-    if (form) {
-      form.submit();
-    }
-  });
+  throw new Error('Create Application action did not become enabled');
 }
 
 async function waitForApplicationCreationComplete(page) {
   const createPageUrl = page.url();
-  const completed = await page.waitForFunction(() => {
+  const completed = await page.waitForFunction((initialUrl) => {
     const status = document.querySelector('#P1_STATUS')?.value || document.querySelector('#P56_STATUS')?.value || '';
-    return ['DONE', 'ERROR', 'ORA_ERROR'].includes(status);
-  }, null, { timeout: 600000 })
+    if (['DONE', 'ERROR', 'ORA_ERROR'].includes(status)) {
+      return true;
+    }
+    const bodyText = document.body?.innerText || '';
+    if (/Application\s+\d+\s+does not exist in the current workspace/i.test(bodyText)) {
+      return true;
+    }
+    return window.location.href !== initialUrl
+      && /Application\s+\d+|Run Application|Edit Application Definition/i.test(bodyText);
+  }, createPageUrl, { timeout: 600000 })
     .then(() => true)
     .catch(() => false);
 
@@ -176,6 +212,10 @@ async function waitForApplicationCreationComplete(page) {
     const message = await page.evaluate(() => document.querySelector('#P1_ERROR_MESSAGE')?.value || document.querySelector('#P56_ERROR_MESSAGE')?.value || '').catch(() => '');
     throw new Error(`Application creation failed${message ? `: ${message}` : ''}`);
   }
+  const bodyText = await page.locator('body').innerText({ timeout: 30000 }).catch(() => '');
+  if (/Application\s+\d+\s+does not exist in the current workspace/i.test(bodyText)) {
+    throw new Error('Application creation navigated to a missing application page');
+  }
   if (!completed) {
     const progressText = await page.locator('.ui-dialog-content, .a-Processing, body').first().innerText({ timeout: 5000 }).catch(() => '');
     throw new Error(`Timed out waiting for application creation to complete${status ? `; status=${status}` : ''}${progressText ? `; progress=${progressText.trim()}` : ''}`);
@@ -188,6 +228,12 @@ async function screenshot(page, evidenceDir, name) {
   return file;
 }
 
+async function saveHtml(page, evidenceDir, name) {
+  const file = path.join(evidenceDir, `${name}.html`);
+  await fs.writeFile(file, await page.content());
+  return file;
+}
+
 async function gotoApex(page, url) {
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -197,6 +243,17 @@ async function gotoApex(page, url) {
     }
   }
   await page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => {});
+}
+
+function apexBaseUrlFromLoginUrl(loginUrl, ordsUrl) {
+  const marker = '/f?p=';
+  if (loginUrl.includes(marker)) {
+    return loginUrl.slice(0, loginUrl.indexOf(marker)).replace(/\/$/, '');
+  }
+  if (/\/apex\/?$/i.test(loginUrl)) {
+    return loginUrl.replace(/\/$/, '');
+  }
+  return ordsUrl;
 }
 
 async function findRunApplicationUrl(page, appId) {
@@ -228,7 +285,7 @@ function isBuilderApplicationPage(page, bodyText, appId) {
 }
 
 function isInvalidGeneratedAppPage(bodyText) {
-  return /ERR-7620|404\s+Not Found|Could not determine workspace|Database Connection Error|HTTP Status Code:\s*571/i.test(bodyText);
+  return /ERR-7620|404\s+Not Found|Not Found[\s\S]{0,300}HTTP Status Code:\s*404|HTTP Status Code:\s*404|Could not determine workspace|Database Connection Error|HTTP Status Code:\s*571/i.test(bodyText);
 }
 
 async function loginWorkspace(page, opts) {
@@ -240,6 +297,11 @@ async function loginWorkspace(page, opts) {
   ];
   const loginUrls = [
     `${opts.ordsUrl}/`,
+    `${opts.ordsUrl}/apex`,
+    `${opts.ordsUrl}/apex/`,
+    `${opts.ordsUrl}/apex/f?p=4550:1`,
+    `${opts.ordsUrl}/r/apex/workspace-sign-in/oracle-apex-sign-in`,
+    `${opts.ordsUrl}/r/apex/workspace-sign-in`,
     `${opts.ordsUrl}/f?p=4550:1`,
   ];
 
@@ -248,6 +310,7 @@ async function loginWorkspace(page, opts) {
     await page.goto(loginUrl, { waitUntil: 'domcontentloaded' });
     try {
       workspaceInput = await visibleLocator(page, workspaceSelectors);
+      opts.apexBaseUrl = apexBaseUrlFromLoginUrl(page.url(), opts.ordsUrl);
       break;
     } catch {
       // Try the next known APEX builder login URL shape.
@@ -291,26 +354,27 @@ async function loginWorkspace(page, opts) {
 }
 
 async function createApplication(page, opts) {
+  const apexBaseUrl = opts.apexBaseUrl || opts.ordsUrl;
   let legacySession = apexSessionFromUrl(page.url()) || await apexSessionFromPage(page);
 
   if (legacySession) {
-    await page.goto(`${opts.ordsUrl}/f?p=4000:1500:${legacySession}::NO::P1500_SHOW:`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${apexBaseUrl}/f?p=4000:1500:${legacySession}::NO::P1500_SHOW:`, { waitUntil: 'domcontentloaded' });
   } else {
     const appBuilderLink = page.locator('a.app-builder, a:has-text("App Builder")').first();
     if (await appBuilderLink.count()) {
       const href = await appBuilderLink.getAttribute('href');
       await page.goto(new URL(href, page.url()).toString(), { waitUntil: 'domcontentloaded' });
     } else {
-      await page.goto(`${opts.ordsUrl}/f?p=4000:1500`, { waitUntil: 'domcontentloaded' });
+      await page.goto(`${apexBaseUrl}/f?p=4000:1500`, { waitUntil: 'domcontentloaded' });
     }
   }
 
   await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
   legacySession = apexSessionFromUrl(page.url()) || await apexSessionFromPage(page);
   if (legacySession) {
-    await page.goto(`${opts.ordsUrl}/f?p=4000:56:${legacySession}::NO:56::`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${apexBaseUrl}/f?p=4000:56:${legacySession}::NO:56::`, { waitUntil: 'domcontentloaded' });
   } else {
-    await page.goto(`${opts.ordsUrl}/f?p=4000:56`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${apexBaseUrl}/f?p=4000:56`, { waitUntil: 'domcontentloaded' });
   }
   await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
 
@@ -326,7 +390,7 @@ async function createApplication(page, opts) {
   }
 
   try {
-    await fillFirst(page, [
+    const appNameInput = await visibleLocator(page, [
       '#P1_APP_NAME',
       'input[name="P1_APP_NAME"]',
       '#P56_APP_NAME',
@@ -335,7 +399,9 @@ async function createApplication(page, opts) {
       'input[name$="_APP_NAME"]',
       'input[placeholder*="Name" i]',
       'input[type="text"]',
-    ], opts.appName);
+    ]);
+    await appNameInput.fill('');
+    await appNameInput.pressSequentially(opts.appName, { delay: 5 });
   } catch (error) {
     throw new Error(`${error.message}; current URL: ${page.url()}`);
   }
@@ -365,13 +431,18 @@ async function createApplication(page, opts) {
   }
 
   await screenshot(page, opts.evidenceDir, 'create-application-before');
+  await saveHtml(page, opts.evidenceDir, 'create-application-before');
   await waitForApexSubmit(page);
   await submitCreateApplication(page);
   await waitForApplicationCreationComplete(page);
   await page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
   await screenshot(page, opts.evidenceDir, 'create-application-after');
+  await saveHtml(page, opts.evidenceDir, 'create-application-after');
 
   const bodyText = await page.locator('body').innerText({ timeout: 30000 });
+  if (/Application\s+\d+\s+does not exist in the current workspace/i.test(bodyText)) {
+    throw new Error('Application creation navigated to a missing application page');
+  }
   const creationStatus = await page.evaluate(() => document.querySelector('#P1_STATUS')?.value || document.querySelector('#P56_STATUS')?.value || '').catch(() => '');
   if (/Create an Application/i.test(bodyText)
       && creationStatus !== 'DONE'
@@ -394,74 +465,95 @@ async function loginGeneratedApplication(page, opts, app) {
   if (!app.appId) {
     throw new Error('Generated application ID was not detected');
   }
-  const appUrls = [
+  await page.context().clearCookies().catch(() => {});
+  const apexBaseUrl = opts.apexBaseUrl || opts.ordsUrl;
+  const appUrls = [...new Set([
+    `${apexBaseUrl}/f?p=${app.appId}:1`,
+    `${apexBaseUrl}/f?p=${app.appId}:9999`,
+    app.runUrl && /\/[^/]+\/f\?p=/i.test(app.runUrl)
+      ? app.runUrl.replace(new RegExp(`/${opts.workspace}/f\\?p=`, 'i'), '/f?p=')
+      : '',
     app.runUrl && /f\?p=/i.test(app.runUrl) ? app.runUrl : '',
-    app.session ? `${opts.ordsUrl}/${opts.workspace}/f?p=${app.appId}:1:${app.session}` : '',
-    app.session ? `${opts.ordsUrl}/f?p=${app.appId}:1:${app.session}` : '',
-    `${opts.ordsUrl}/${opts.workspace}/f?p=${app.appId}:1`,
-    `${opts.ordsUrl}/f?p=${app.appId}:1`,
-  ].filter(Boolean);
+    app.session ? `${apexBaseUrl}/f?p=${app.appId}:1:${app.session}` : '',
+    app.session ? `${apexBaseUrl}/${opts.workspace}/f?p=${app.appId}:1:${app.session}` : '',
+    `${apexBaseUrl}/${opts.workspace}/f?p=${app.appId}:1`,
+  ].filter(Boolean))];
   let bodyText = '';
+  const attempts = [];
   for (const appUrl of appUrls) {
-    await gotoApex(page, appUrl);
+    try {
+      await gotoApex(page, appUrl);
+    } catch (error) {
+      if (/ERR_TOO_MANY_REDIRECTS/i.test(String(error.message || error))) {
+        attempts.push({ url: appUrl, error: 'ERR_TOO_MANY_REDIRECTS' });
+        continue;
+      }
+      throw error;
+    }
     bodyText = await page.locator('body').innerText({ timeout: 30000 });
-    if (!isInvalidGeneratedAppPage(bodyText)
-        && !isBuilderApplicationPage(page, bodyText, app.appId)) {
-      break;
+    attempts.push({
+      url: appUrl,
+      finalUrl: page.url(),
+      snippet: bodyText.replace(/\s+/g, ' ').trim().slice(0, 220),
+    });
+    if (isInvalidGeneratedAppPage(bodyText)
+        || isBuilderApplicationPage(page, bodyText, app.appId)) {
+      continue;
+    }
+
+    const passwordInput = page.locator('#P9999_PASSWORD, input[type="password"]').first();
+    if (await passwordInput.count()) {
+      const workspaceInput = page.locator('#F4550_P1_COMPANY, #P101_COMPANY, input[name$="_COMPANY"], input[placeholder*="Workspace" i]').first();
+      if (await workspaceInput.count()) {
+        await workspaceInput.fill(opts.workspace);
+      }
+      await fillFirst(page, [
+        '#P9999_USERNAME',
+        '#F4550_P1_USERNAME',
+        '#P101_USERNAME',
+        'input[name$="_USERNAME"]',
+        'input[autocomplete="username"]',
+      ], opts.username);
+      await fillFirst(page, [
+        '#P9999_PASSWORD',
+        '#F4550_P1_PASSWORD',
+        '#P101_PASSWORD',
+        'input[name$="_PASSWORD"]',
+        'input[type="password"]',
+      ], opts.password);
+      await waitForApexSubmit(page);
+      await clickFirst(page, [
+        'button:has-text("Sign In")',
+        'button:has-text("Sign in")',
+        'button[type="submit"]',
+      ]);
+      await page.waitForURL((url) => !/4550|workspace-sign-in/i.test(url.toString()), { timeout: 60000 }).catch(() => {});
+      await page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
+    }
+
+    bodyText = await page.locator('body').innerText({ timeout: 30000 });
+    attempts[attempts.length - 1] = {
+      ...attempts[attempts.length - 1],
+      afterLoginUrl: page.url(),
+      afterLoginSnippet: bodyText.replace(/\s+/g, ' ').trim().slice(0, 220),
+    };
+    if (/Sign in|Workspace\s+Username\s+Password/i.test(bodyText)
+        || isInvalidGeneratedAppPage(bodyText)
+        || isBuilderApplicationPage(page, bodyText, app.appId)) {
+      continue;
+    }
+    if (/ORA-\d+|ERR-\d+|Internal Server Error/i.test(bodyText)) {
+      throw new Error('Generated application rendered an Oracle/APEX error page');
+    }
+    if (/Database Connection Error|HTTP Status Code:\s*571/i.test(bodyText)) {
+      throw new Error('Generated application rendered an ORDS database connection error page');
+    }
+    if (bodyText.includes(opts.appName) || /\bHome\b/i.test(bodyText)) {
+      return screenshot(page, opts.evidenceDir, 'application-home');
     }
   }
-  if (/404\s+Not Found|Application with the alias .* does not exist/i.test(bodyText)) {
-    throw new Error(`Generated application did not open with traditional f?p URL: ${app.appId}`);
-  }
 
-  const passwordInput = page.locator('#P9999_PASSWORD, input[type="password"]').first();
-  if (await passwordInput.count()) {
-    const workspaceInput = page.locator('#F4550_P1_COMPANY, #P101_COMPANY, input[name$="_COMPANY"], input[placeholder*="Workspace" i]').first();
-    if (await workspaceInput.count()) {
-      await workspaceInput.fill(opts.workspace);
-    }
-    await fillFirst(page, [
-      '#P9999_USERNAME',
-      '#F4550_P1_USERNAME',
-      '#P101_USERNAME',
-      'input[name$="_USERNAME"]',
-      'input[autocomplete="username"]',
-    ], opts.username);
-    await fillFirst(page, [
-      '#P9999_PASSWORD',
-      '#F4550_P1_PASSWORD',
-      '#P101_PASSWORD',
-      'input[name$="_PASSWORD"]',
-      'input[type="password"]',
-    ], opts.password);
-    await waitForApexSubmit(page);
-    await clickFirst(page, [
-      'button:has-text("Sign In")',
-      'button:has-text("Sign in")',
-      'button[type="submit"]',
-    ]);
-    await page.waitForURL((url) => !/4550|workspace-sign-in/i.test(url.toString()), { timeout: 60000 }).catch(() => {});
-    await page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
-  }
-
-  bodyText = await page.locator('body').innerText({ timeout: 30000 });
-  if (/Sign in|Workspace\s+Username\s+Password/i.test(bodyText)) {
-    throw new Error('Generated application login did not leave the sign-in page');
-  }
-  if (/ORA-\d+|ERR-\d+|Internal Server Error/i.test(bodyText)) {
-    throw new Error('Generated application rendered an Oracle/APEX error page');
-  }
-  if (/Database Connection Error|HTTP Status Code:\s*571/i.test(bodyText)) {
-    throw new Error('Generated application rendered an ORDS database connection error page');
-  }
-  if (isBuilderApplicationPage(page, bodyText, app.appId)) {
-    throw new Error('Traditional f?p URL opened App Builder instead of the generated runtime application');
-  }
-  if (!bodyText.includes(opts.appName) && !/\bHome\b/i.test(bodyText)) {
-    throw new Error('Generated application did not render the expected Home page');
-  }
-
-  return screenshot(page, opts.evidenceDir, 'application-home');
+  throw new Error(`Generated application did not render the expected Home page; attempts=${JSON.stringify(attempts)}`);
 }
 
 async function main() {

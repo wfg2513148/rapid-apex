@@ -20,7 +20,7 @@ grep -q "APEX: 26.1 (apex_26.1.zip)" <<<"$plan_output"
 grep -q "ORDS: 26 (official-oracle-image, official-oracle-image-preferred" <<<"$plan_output"
 grep -q "Database official image: container-registry.oracle.com/database/free:latest" <<<"$plan_output"
 grep -q "ORDS official image: container-registry.oracle.com/database/ords:26.1.1" <<<"$plan_output"
-grep -q "https://download.oracle.com/otn_software/apex/apex_26.1_en.zip" <<<"$plan_output"
+grep -q "https://download.oracle.com/otn_software/apex/apex_26.1.zip" <<<"$plan_output"
 grep -q "Full install execution is implemented for legacy XE and official Database/ORDS profiles." <<<"$plan_output"
 
 profile_output="$("$CLI" plan --profile "$ROOT_DIR/profiles/18c-apex191-ords192.env")"
@@ -31,6 +31,14 @@ grep -q "ORDS: 19.2 (legacy-simple" <<<"$profile_output"
 override_output="$("$CLI" plan --profile "$ROOT_DIR/profiles/18c-apex191-ords192.env" --name override-lab --ords 21)"
 grep -q "Name: override-lab" <<<"$override_output"
 grep -q "ORDS: 21 (legacy-simple" <<<"$override_output"
+grep -q "ORDS media: https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/ords-21.4.2.062.1806.zip" <<<"$override_output"
+
+ords20_output="$("$CLI" plan --db 18c --apex 20.2 --ords 20 --name ords20-lab)"
+grep -q "ORDS media: https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/ords-20.4.3.050.1904.zip" <<<"$ords20_output"
+if grep -q "ords-20.x.zip\\|ords-21.x.zip" <<<"$override_output$ords20_output"; then
+  echo "legacy ORDS plans must use concrete media filenames" >&2
+  exit 1
+fi
 
 dry_run_output="$("$CLI" install --dry-run --profile "$ROOT_DIR/profiles/26ai-apex261-ords26.env")"
 grep -q "Rapid-APEX installation plan" <<<"$dry_run_output"
@@ -175,5 +183,44 @@ chmod +x "$fake_local_image_bin/docker"
 
 pull_skip_output="$(PATH="$fake_local_image_bin:$PATH" bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_pull_image_if_needed container-registry.oracle.com/database/enterprise:19.3.0.0")"
 grep -q "Docker image already exists locally: container-registry.oracle.com/database/enterprise:19.3.0.0" <<<"$pull_skip_output"
+
+fake_proxy_bin="$(mktemp -d)"
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_proxy_bin"' EXIT
+proxy_args_capture="$(mktemp)"
+proxy_sql_capture="$(mktemp)"
+restart_capture="$(mktemp)"
+cat >"$fake_proxy_bin/docker" <<'FAKE_PROXY_DOCKER'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+  container)
+    [[ "${2:-}" == "inspect" ]] && exit 0
+    ;;
+  exec)
+    printf '%s\n' "$*" >"${RAPID_APEX_PROXY_ARGS_CAPTURE:?}"
+    cat >"${RAPID_APEX_PROXY_SQL_CAPTURE:?}"
+    exit 0
+    ;;
+  restart)
+    printf '%s\n' "$*" >"${RAPID_APEX_RESTART_CAPTURE:?}"
+    exit 0
+    ;;
+esac
+exit 1
+FAKE_PROXY_DOCKER
+chmod +x "$fake_proxy_bin/docker"
+
+PATH="$fake_proxy_bin:$PATH" \
+  RAPID_APEX_PROXY_ARGS_CAPTURE="$proxy_args_capture" \
+  RAPID_APEX_PROXY_SQL_CAPTURE="$proxy_sql_capture" \
+  bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_default_config; rapid_apex_parse_options --db 19c --apex 23.1 --ords 24 --license-policy byol --name proxy-lab; rapid_apex_grant_runtime_proxy_users"
+grep -q "sys/oracle@localhost:1521/ORCLPDB1 as sysdba" "$proxy_args_capture"
+grep -q "ORDS_PUBLIC_USER" "$proxy_sql_capture"
+rm -f "$proxy_args_capture" "$proxy_sql_capture"
+
+restart_output="$(PATH="$fake_proxy_bin:$PATH" RAPID_APEX_RESTART_CAPTURE="$restart_capture" bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_wait_for_http() { printf 'waited %s %s\n' \"\$1\" \"\$2\"; }; rapid_apex_default_config; rapid_apex_parse_options --db 19c --apex 23.1 --ords 24 --license-policy byol --name proxy-lab --ords-port 32523; rapid_apex_restart_ords_after_proxy_grant")"
+grep -q "restart proxy-lab_ords" "$restart_capture"
+grep -q "waited http://localhost:32523/ords/ proxy-lab_ords" <<<"$restart_output"
+rm -f "$restart_capture"
 
 echo "rapid-apex CLI guard passed"

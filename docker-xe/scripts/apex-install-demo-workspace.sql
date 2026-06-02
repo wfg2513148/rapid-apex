@@ -28,6 +28,25 @@ end;
 grant create session, resource, create view, create procedure, create sequence, create trigger to &schema_name;
 
 declare
+  l_schema_name varchar2(128) := dbms_assert.simple_sql_name(upper('&schema_name'));
+begin
+  for proxy_user in (
+    select username
+     from sys.dba_users
+     where username in (
+       'APEX_LISTENER',
+       'APEX_PUBLIC_USER',
+       'APEX_REST_PUBLIC_USER',
+       'ORDS_PUBLIC_USER'
+     )
+  ) loop
+    execute immediate 'alter user ' || l_schema_name ||
+      ' grant connect through ' || dbms_assert.simple_sql_name(proxy_user.username);
+  end loop;
+end;
+/
+
+declare
   l_workspace_id number;
 begin
   begin

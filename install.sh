@@ -121,6 +121,22 @@ function download()
 
 }
 
+function keep_only_selected_ords_media()
+{
+  local selected_file=$1
+  local ords_media
+
+  for ords_media in ords*.zip; do
+    if [ ! -e "$ords_media" ]; then
+      continue
+    fi
+    if [ "$ords_media" = "$selected_file" ]; then
+      continue
+    fi
+    rm -f "$ords_media"
+  done
+}
+
 
 
 
@@ -136,6 +152,7 @@ echo ""
 cd $work_path/docker-ords/files
 download $ords_file_name
 ords_file_name=$fileName
+keep_only_selected_ords_media "$ords_file_name"
 
 echo ">>> ords_file_name="$ords_file_name
 echo ""
@@ -153,13 +170,16 @@ echo ""
 
 cd $work_path/docker-xe
 
-if [ ! -d ../apex ]; then
+apex_media_marker="../apex/.rapid-apex-media"
+if [ ! -d ../apex ] || [ ! -f "$apex_media_marker" ] || [ "$(cat "$apex_media_marker")" != "$apex_file_name" ]; then
   echo ">>> unzip apex installation media ..."
+  rm -rf ../apex
   mkdir ../apex
-  cp scripts/apex-install*  ../apex/
   unzip -oq files/$apex_file_name -d ../ &
   apex_unzip_pid=$!
+  echo "$apex_file_name" > "$apex_media_marker"
 fi;
+cp scripts/apex-install*  ../apex/
 
 echo ""
 echo "--------- Step 2: compile oracle xe docker image ---------"

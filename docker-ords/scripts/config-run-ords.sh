@@ -79,6 +79,7 @@ else
 	# cat $PARAM_FILE
 	# echo "*** PARAMFILE END ***"
 
-	java -jar ords.war install simple --parameterFile $PARAM_FILE
+	# ORDS 20/21 prompt for optional feature bundles even with a parameter file.
+	# Select "None" so the legacy APEX gateway install remains non-interactive.
+	printf '5\n' | java -jar ords.war install simple --parameterFile $PARAM_FILE
 fi
-

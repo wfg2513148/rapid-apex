@@ -229,8 +229,8 @@ rapid_apex_apex_media_file() {
 
 rapid_apex_apex_download_url() {
   case "$RAPID_APEX_APEX_VERSION" in
-    24.2|26.1)
-      printf 'https://download.oracle.com/otn_software/apex/apex_%s_en.zip\n' "$RAPID_APEX_APEX_VERSION"
+    23.1|23.2|24.1|24.2|26.1)
+      printf 'https://download.oracle.com/otn_software/apex/apex_%s.zip\n' "$RAPID_APEX_APEX_VERSION"
       ;;
     *)
       printf '%s/%s\n' "${RAPID_APEX_MEDIA_BASE_URL%/}" "$(rapid_apex_apex_media_file)"
@@ -245,8 +245,8 @@ rapid_apex_ords_media_file() {
     18.2) printf '%s\n' ords-18.2.0.183.1748.zip ;;
     18.4) printf '%s\n' ords-18.4.0.354.1002.zip ;;
     19.2|19.2.0) printf '%s\n' ords-19.2.0.199.1647.zip ;;
-    20|20.x) printf '%s\n' ords-20.x.zip ;;
-    21|21.x) printf '%s\n' ords-21.x.zip ;;
+    20|20.x) printf '%s\n' ords-20.4.3.050.1904.zip ;;
+    21|21.x) printf '%s\n' ords-21.4.2.062.1806.zip ;;
     22|22.x) printf '%s\n' ords-22.x.zip ;;
     23|23.x) printf '%s\n' ords-23.x.zip ;;
     24|24.x) printf '%s\n' ords-24.x.zip ;;
@@ -352,6 +352,15 @@ rapid_apex_db_service_name() {
   esac
 }
 
+rapid_apex_apex_schema_name() {
+  local major minor
+
+  major="${RAPID_APEX_APEX_VERSION%%.*}"
+  minor="${RAPID_APEX_APEX_VERSION#*.}"
+  minor="${minor%%.*}"
+  printf 'APEX_%02d%02d00\n' "$major" "$minor"
+}
+
 rapid_apex_wait_for_health() {
   local container="$1"
   local timeout_seconds="${2:-1800}"
@@ -403,7 +412,10 @@ rapid_apex_download_file() {
   fi
 
   printf 'Downloading media: %s\n' "$url" >&2
-  curl --fail --location --show-error --output "$target" "$url"
+  if ! curl --fail --location --show-error --output "$target" "$url"; then
+    rm -f "$target"
+    return 1
+  fi
 }
 
 rapid_apex_pull_image_if_needed() {
@@ -438,6 +450,7 @@ rapid_apex_prepare_apex_home() {
     fi
     mv "$lab_dir/apex-src/apex" "$apex_home"
     rm -rf "$lab_dir/apex-src"
+    rm -f "$media_file"
   fi
 
   printf '%s\n' "$apex_home"
@@ -491,6 +504,27 @@ rapid_apex_check_ords_image_access() {
   return 1
 }
 
+rapid_apex_check_official_install_disk() {
+  local required_kb=$((10 * 1024 * 1024))
+  local available_kb
+
+  available_kb="$(df -Pk "$RAPID_APEX_ROOT_DIR" | awk 'NR == 2 {print $4}')"
+  if [[ -z "$available_kb" ]]; then
+    printf 'WARN Disk free space could not be checked for %s\n' "$RAPID_APEX_ROOT_DIR"
+    return 0
+  fi
+
+  if (( available_kb < required_kb )); then
+    printf 'FAIL Disk free space is %.1f GiB; official Database/ORDS profiles require at least 10.0 GiB free under %s\n' \
+      "$(awk "BEGIN {printf \"%.1f\", $available_kb / 1024 / 1024}")" \
+      "$RAPID_APEX_ROOT_DIR"
+    return 1
+  fi
+
+  printf 'PASS Disk free space is %.1f GiB for official Database/ORDS profile\n' \
+    "$(awk "BEGIN {printf \"%.1f\", $available_kb / 1024 / 1024}")"
+}
+
 rapid_apex_install_official_db_ords() {
   local lab_dir="$RAPID_APEX_ROOT_DIR/.rapid-apex/labs/$RAPID_APEX_NAME"
   local db_container="${RAPID_APEX_NAME}_db"
@@ -506,9 +540,8 @@ rapid_apex_install_official_db_ords() {
     return 2
   fi
 
-  mkdir -p "$lab_dir/db" "$lab_dir/ords-config"
-  chmod 777 "$lab_dir/db" "$lab_dir/ords-config"
-  apex_home="$(rapid_apex_prepare_apex_home "$lab_dir")"
+  mkdir -p "$lab_dir/db" "$lab_dir/ords-config" "$lab_dir/variables"
+  chmod 777 "$lab_dir/db" "$lab_dir/ords-config" "$lab_dir/variables"
 
   if ! docker network inspect "${RAPID_APEX_NAME}_network" >/dev/null 2>&1; then
     docker network create -d bridge "${RAPID_APEX_NAME}_network"
@@ -523,31 +556,138 @@ rapid_apex_install_official_db_ords() {
     -p "${RAPID_APEX_DB_PORT}:1521" \
     -p "${RAPID_APEX_EM_PORT}:5500" \
     -e ORACLE_PWD=oracle \
+    -v "$lab_dir:/rapid-apex-lab" \
+    -v "$RAPID_APEX_ROOT_DIR/docker-xe/scripts/apex-install-demo-workspace.sql:/rapid-apex-lab/apex-install-demo-workspace.sql:ro" \
     -v "$lab_dir/db:/opt/oracle/oradata" \
     "$(rapid_apex_db_official_image)"
 
   rapid_apex_wait_for_health "$db_container" 2400
+  apex_home="$(rapid_apex_prepare_apex_home "$lab_dir")" || return "$?"
+  printf 'CONN_STRING="%s"\n' "sys/oracle@${db_container}:1521/${db_service}" >"$lab_dir/variables/conn_string.txt"
+  chmod 644 "$lab_dir/variables/conn_string.txt"
+
+  if [[ "$(rapid_apex_ords_major "$RAPID_APEX_ORDS_VERSION")" -ge 24 ]]; then
+    rapid_apex_install_apex_in_db_container "$db_container" "$db_service"
+
+    docker run -d \
+      --name "$ords_container" \
+      --network "${RAPID_APEX_NAME}_network" \
+      --entrypoint /bin/bash \
+      -p "${RAPID_APEX_ORDS_PORT}:8181" \
+      -e DBHOST="$db_container" \
+      -e DBPORT=1521 \
+      -e DBSERVICENAME="$db_service" \
+      -e ORACLE_USER_PWD=oracle \
+      -e APEX_VER="${RAPID_APEX_APEX_VERSION}.0" \
+      -v "$lab_dir/ords-config:/etc/ords/config" \
+      -v "$apex_home:/opt/oracle/apex/${RAPID_APEX_APEX_VERSION}.0:ro" \
+      -v "$RAPID_APEX_ROOT_DIR/docker-ords/scripts/run-ords-official.sh:/ords-entrypoint.d/run-ords-official.sh:ro" \
+      "$(rapid_apex_ords_official_image)" \
+      /ords-entrypoint.d/run-ords-official.sh
+
+    rapid_apex_wait_for_http "http://localhost:${RAPID_APEX_ORDS_PORT}/ords/" "$ords_container" 2400
+    return 0
+  fi
 
   docker run -d \
     --name "$ords_container" \
     --network "${RAPID_APEX_NAME}_network" \
-    -p "${RAPID_APEX_ORDS_PORT}:8080" \
+    -p "${RAPID_APEX_ORDS_PORT}:8181" \
     -e DBHOST="$db_container" \
     -e DBPORT=1521 \
     -e DBSERVICENAME="$db_service" \
     -e ORACLE_PWD=oracle \
     -e ORACLE_USER_PWD=oracle \
     -e APEX_PWD=oracle \
+    -e APEX_VER="${RAPID_APEX_APEX_VERSION}.0" \
     -e DEMO_WORKSPACE_NAME=demo \
     -e DEMO_WORKSPACE_USER=demo \
     -e DEMO_WORKSPACE_PWD=demo \
     -v "$lab_dir/ords-config:/etc/ords/config" \
-    -v "$apex_home:/opt/oracle/apex:ro" \
+    -v "$lab_dir/variables:/opt/oracle/variables" \
+    -v "$apex_home:/opt/oracle/apex/${RAPID_APEX_APEX_VERSION}.0:ro" \
     -v "$RAPID_APEX_ROOT_DIR/docker-ords/scripts/create-demo-workspace-official.sh:/ords-entrypoint.d/10-create-demo-workspace.sh:ro" \
     -v "$RAPID_APEX_ROOT_DIR/docker-xe/scripts/apex-install-demo-workspace.sql:/ords-entrypoint.d/apex-install-demo-workspace.sql:ro" \
     "$(rapid_apex_ords_official_image)"
 
   rapid_apex_wait_for_http "http://localhost:${RAPID_APEX_ORDS_PORT}/ords/" "$ords_container" 2400
+}
+
+rapid_apex_install_apex_in_db_container() {
+  local db_container="$1"
+  local db_service="$2"
+  local apex_schema
+  local sqlplus_cmd
+
+  apex_schema="$(rapid_apex_apex_schema_name)"
+  sqlplus_cmd='SQLPLUS_BIN="$(command -v sqlplus || true)"; if [ -z "$SQLPLUS_BIN" ]; then SQLPLUS_BIN="$ORACLE_HOME/bin/sqlplus"; fi; cd /rapid-apex-lab/apex && "$SQLPLUS_BIN" -S "sys/oracle@localhost:1521/'"$db_service"' as sysdba"'
+  docker exec -i "$db_container" bash -lc "$sqlplus_cmd" <<'SQL'
+whenever sqlerror exit failure
+@apexins.sql SYSAUX SYSAUX TEMP /i/
+@apex_rest_config_core.sql /rapid-apex-lab/apex/ oracle oracle
+alter profile default limit password_life_time UNLIMITED;
+alter user APEX_PUBLIC_USER account unlock;
+alter user APEX_PUBLIC_USER identified by oracle;
+alter user APEX_LISTENER account unlock;
+alter user APEX_LISTENER identified by oracle;
+alter user APEX_REST_PUBLIC_USER account unlock;
+alter user APEX_REST_PUBLIC_USER identified by oracle;
+exit
+SQL
+
+  sqlplus_cmd='SQLPLUS_BIN="$(command -v sqlplus || true)"; if [ -z "$SQLPLUS_BIN" ]; then SQLPLUS_BIN="$ORACLE_HOME/bin/sqlplus"; fi; cd /rapid-apex-lab/apex/core && "$SQLPLUS_BIN" -S "sys/oracle@localhost:1521/'"$db_service"' as sysdba"'
+  docker exec -i "$db_container" bash -lc "$sqlplus_cmd" <<SQL
+whenever sqlerror exit failure
+set define off
+declare
+  l_count number;
+begin
+  select count(*)
+    into l_count
+    from sys.dba_objects
+   where owner = 'SYS'
+     and object_name = 'RESOLVE_SYNONYM'
+     and object_type in ('FUNCTION', 'PROCEDURE');
+
+  if l_count > 0 then
+    execute immediate 'grant execute on sys.resolve_synonym to ${apex_schema}';
+  end if;
+end;
+/
+declare
+  l_count number;
+begin
+  select count(*)
+    into l_count
+    from sys.product_component_version
+   where product like 'Oracle AI Database%';
+
+  if l_count > 0 and '${RAPID_APEX_ORDS_VERSION}' in ('24', '24.x') then
+    execute immediate 'alter session set "_ORACLE_SCRIPT"=true';
+    execute immediate q'[
+      create or replace view sys.product_component_version as
+      select regexp_replace(regexp_substr(banner_full, '^(.*) Release', 1, 1, null, 1), '^Oracle AI Database', 'Oracle Database') product,
+             regexp_replace(regexp_substr(banner_full, 'Version ([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)', 1, 1, null, 1), '^([0-9]+)\\..*', '\\1.0.0.0.0') version,
+             regexp_substr(banner_full, 'Version ([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)', 1, 1, null, 1) version_full,
+             regexp_substr(banner_full, ' - (.*)$', 1, 1, null, 1) status
+        from sys.v_\$version
+       where banner_full like 'Oracle%Database%'
+    ]';
+    execute immediate 'grant select on sys.product_component_version to public';
+  end if;
+end;
+/
+@validate_apex.sql x x ${apex_schema}
+exec validate_apex;
+exit
+SQL
+
+  sqlplus_cmd='SQLPLUS_BIN="$(command -v sqlplus || true)"; if [ -z "$SQLPLUS_BIN" ]; then SQLPLUS_BIN="$ORACLE_HOME/bin/sqlplus"; fi; "$SQLPLUS_BIN" -S "sys/oracle@localhost:1521/'"$db_service"' as sysdba"'
+  docker exec -i "$db_container" bash -lc "$sqlplus_cmd" <<'SQL'
+whenever sqlerror exit failure
+@/rapid-apex-lab/apex-install-demo-workspace.sql demo demo demo
+exit
+SQL
 }
 
 rapid_apex_wait_for_http() {
@@ -733,6 +873,10 @@ rapid_apex_cmd_preflight() {
         rapid_apex_check_db_image_access || failed="Y"
       fi
       rapid_apex_check_ords_image_access || failed="Y"
+      if [[ "$(rapid_apex_db_family "$RAPID_APEX_DB_VERSION")" != "oracle-express-container" ]] &&
+         [[ "$(rapid_apex_ords_install_family "$RAPID_APEX_ORDS_VERSION")" == "official-oracle-image" ]]; then
+        rapid_apex_check_official_install_disk || failed="Y"
+      fi
     else
       printf 'FAIL Docker daemon is not reachable; start Docker Desktop or Colima\n'
       failed="Y"
@@ -918,6 +1062,82 @@ rapid_apex_cmd_browser_smoke() {
   rapid_apex_run_browser_smoke "$evidence_dir" "$ords_url"
 }
 
+rapid_apex_grant_runtime_proxy_users() {
+  local db_container="${RAPID_APEX_NAME}_db"
+  local schema_name="$RAPID_APEX_WORKSPACE_USER"
+  local db_family
+  local db_service
+  local ords_family
+  local sqlplus_conn
+
+  db_family="$(rapid_apex_db_family "$RAPID_APEX_DB_VERSION")"
+  ords_family="$(rapid_apex_ords_install_family "$RAPID_APEX_ORDS_VERSION")"
+
+  if [[ "$db_family" == "oracle-express-container" ]] &&
+     [[ "$ords_family" == "legacy-simple" ]]; then
+    sqlplus_conn='sys/oracle@localhost/XEPDB1 as sysdba'
+  elif [[ "$ords_family" == "official-oracle-image" ]] && {
+       [[ "$db_family" == "oracle-free-container" ]] || [[ "$db_family" == "oracle-enterprise-ru-container" ]]
+     }; then
+    db_service="$(rapid_apex_db_service_name)"
+    sqlplus_conn="sys/oracle@localhost:1521/${db_service} as sysdba"
+  else
+    return 0
+  fi
+
+  if ! docker container inspect "$db_container" >/dev/null 2>&1; then
+    printf 'Database container not found for proxy grant: %s\n' "$db_container" >&2
+    return 2
+  fi
+
+  docker exec -i "$db_container" bash -lc 'SQLPLUS_BIN="$(command -v sqlplus || true)"; if [ -z "$SQLPLUS_BIN" ]; then SQLPLUS_BIN="$ORACLE_HOME/bin/sqlplus"; fi; "$SQLPLUS_BIN" -S "$1"' _ "$sqlplus_conn" <<SQL
+whenever sqlerror exit sql.sqlcode
+set define off
+declare
+  l_schema_name varchar2(128) := dbms_assert.simple_sql_name(upper('${schema_name}'));
+begin
+  for proxy_user in (
+    select username
+     from sys.dba_users
+     where username in (
+       'APEX_LISTENER',
+       'APEX_PUBLIC_USER',
+       'APEX_REST_PUBLIC_USER',
+       'ORDS_PUBLIC_USER'
+     )
+  ) loop
+    execute immediate 'alter user ' || l_schema_name ||
+      ' grant connect through ' || dbms_assert.simple_sql_name(proxy_user.username);
+  end loop;
+end;
+/
+exit
+SQL
+}
+
+rapid_apex_restart_ords_after_proxy_grant() {
+  local ords_container="${RAPID_APEX_NAME}_ords"
+  local db_family
+  local ords_family
+
+  db_family="$(rapid_apex_db_family "$RAPID_APEX_DB_VERSION")"
+  ords_family="$(rapid_apex_ords_install_family "$RAPID_APEX_ORDS_VERSION")"
+
+  if [[ "$ords_family" != "official-oracle-image" ]] ||
+     { [[ "$db_family" != "oracle-free-container" ]] && [[ "$db_family" != "oracle-enterprise-ru-container" ]]; } ||
+     [[ "$(rapid_apex_ords_major "$RAPID_APEX_ORDS_VERSION")" -lt 24 ]]; then
+    return 0
+  fi
+
+  if ! docker container inspect "$ords_container" >/dev/null 2>&1; then
+    printf 'ORDS container not found for restart: %s\n' "$ords_container" >&2
+    return 2
+  fi
+
+  docker restart "$ords_container" >/dev/null
+  rapid_apex_wait_for_http "$(rapid_apex_ords_url)/" "$ords_container" 900
+}
+
 rapid_apex_cmd_e2e() {
   local e2e_status=0
 
@@ -952,6 +1172,12 @@ rapid_apex_cmd_e2e() {
   fi
   if [[ "$e2e_status" == "0" ]]; then
     rapid_apex_wait_for_http "$(rapid_apex_ords_url)/" "${RAPID_APEX_NAME}_ords" 900 || e2e_status="$?"
+  fi
+  if [[ "$e2e_status" == "0" ]]; then
+    rapid_apex_grant_runtime_proxy_users || e2e_status="$?"
+  fi
+  if [[ "$e2e_status" == "0" ]]; then
+    rapid_apex_restart_ords_after_proxy_grant || e2e_status="$?"
   fi
   if [[ "$e2e_status" == "0" ]]; then
     rapid_apex_cmd_smoke "$@" || e2e_status="$?"
