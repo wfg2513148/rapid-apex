@@ -1434,19 +1434,28 @@ rapid_apex_cmd_destroy() {
   rapid_apex_parse_options "$@"
   rapid_apex_require_docker
 
+  local failed="N"
   local container
   for container in "${RAPID_APEX_NAME}_ords" "${RAPID_APEX_NAME}_db"; do
     if docker container inspect "$container" >/dev/null 2>&1; then
-      docker rm -f "$container"
-      printf 'Removed container: %s\n' "$container"
+      if docker rm -f "$container"; then
+        printf 'Removed container: %s\n' "$container"
+      else
+        printf 'Failed to remove container: %s\n' "$container" >&2
+        failed="Y"
+      fi
     else
       printf 'Container not found: %s\n' "$container"
     fi
   done
 
   if docker network inspect "${RAPID_APEX_NAME}_network" >/dev/null 2>&1; then
-    docker network rm "${RAPID_APEX_NAME}_network"
-    printf 'Removed network: %s_network\n' "$RAPID_APEX_NAME"
+    if docker network rm "${RAPID_APEX_NAME}_network"; then
+      printf 'Removed network: %s_network\n' "$RAPID_APEX_NAME"
+    else
+      printf 'Failed to remove network: %s_network\n' "$RAPID_APEX_NAME" >&2
+      failed="Y"
+    fi
   else
     printf 'Network not found: %s_network\n' "$RAPID_APEX_NAME"
   fi
@@ -1475,6 +1484,44 @@ rapid_apex_cmd_destroy() {
         printf 'Lab data not found: %s\n' "$legacy_dir"
       fi
     done
+  fi
+
+  if [[ "$failed" == "Y" ]]; then
+    rapid_apex_report_residual_resources
+    return 2
+  fi
+}
+
+rapid_apex_report_residual_resources() {
+  local printed="N"
+  local container
+
+  for container in "${RAPID_APEX_NAME}_ords" "${RAPID_APEX_NAME}_db"; do
+    if docker container inspect "$container" >/dev/null 2>&1; then
+      if [[ "$printed" == "N" ]]; then
+        printf 'Residual Rapid-APEX resources for %s:\n' "$RAPID_APEX_NAME" >&2
+        printed="Y"
+      fi
+      printf '  container: %s\n' "$container" >&2
+    fi
+  done
+
+  if docker network inspect "${RAPID_APEX_NAME}_network" >/dev/null 2>&1; then
+    if [[ "$printed" == "N" ]]; then
+      printf 'Residual Rapid-APEX resources for %s:\n' "$RAPID_APEX_NAME" >&2
+      printed="Y"
+    fi
+    printf '  network: %s_network\n' "$RAPID_APEX_NAME" >&2
+  fi
+
+  if [[ "$RAPID_APEX_PURGE_DATA" == "Y" ]]; then
+    local lab_dir="$RAPID_APEX_ROOT_DIR/.rapid-apex/labs/$RAPID_APEX_NAME"
+    if [[ -d "$lab_dir" ]]; then
+      if [[ "$printed" == "N" ]]; then
+        printf 'Residual Rapid-APEX resources for %s:\n' "$RAPID_APEX_NAME" >&2
+      fi
+      printf '  data: %s\n' "$lab_dir" >&2
+    fi
   fi
 }
 

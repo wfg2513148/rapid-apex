@@ -395,4 +395,46 @@ grep -q "rm -f recover-lab_db" "$recover_capture"
 grep -q "network rm recover-lab_network" "$recover_capture"
 rm -f "$recover_capture"
 
+fake_destroy_fail_bin="$(mktemp -d)"
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin" "$fake_proxy_bin" "$fake_port_bin" "$fake_recover_bin" "$fake_destroy_fail_bin"' EXIT
+cat >"$fake_destroy_fail_bin/docker" <<'FAKE_DESTROY_FAIL_DOCKER'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+  info) exit 0 ;;
+  container)
+    [[ "${2:-}" == "inspect" ]] && exit 0
+    ;;
+  rm)
+    if [[ "${3:-}" == "broken-lab_db" ]]; then
+      echo "database container removal failed" >&2
+      exit 1
+    fi
+    exit 0
+    ;;
+  network)
+    case "${2:-}" in
+      inspect) exit 0 ;;
+      rm)
+        echo "network removal failed" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+esac
+exit 0
+FAKE_DESTROY_FAIL_DOCKER
+chmod +x "$fake_destroy_fail_bin/docker"
+if PATH="$fake_destroy_fail_bin:$PATH" "$CLI" destroy --name broken-lab >/tmp/rapid-apex-destroy-fail.out 2>&1; then
+  echo "expected destroy to fail when selected lab resources remain" >&2
+  rm -f /tmp/rapid-apex-destroy-fail.out
+  exit 1
+fi
+grep -q "Failed to remove container: broken-lab_db" /tmp/rapid-apex-destroy-fail.out
+grep -q "Failed to remove network: broken-lab_network" /tmp/rapid-apex-destroy-fail.out
+grep -q "Residual Rapid-APEX resources for broken-lab:" /tmp/rapid-apex-destroy-fail.out
+grep -q "container: broken-lab_db" /tmp/rapid-apex-destroy-fail.out
+grep -q "network: broken-lab_network" /tmp/rapid-apex-destroy-fail.out
+rm -f /tmp/rapid-apex-destroy-fail.out
+
 echo "rapid-apex CLI guard passed"
