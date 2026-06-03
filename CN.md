@@ -110,6 +110,28 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 
 `recover` 只针对所选 lab name 对应的 `<name>_db`、`<name>_ords`、`<name>_network` 和生成的数据目录，不会主动清理无关容器。
 
+# 主机前置条件
+
+- 需要 Docker CLI，并且 Docker daemon 必须可访问。
+- 官方 Database/ORDS 镜像 profile 需要足够本地磁盘空间存放 Oracle 镜像、安装介质、生成的 lab 数据、Playwright 和证据文件。现代官方镜像 profile 的 preflight 会检查至少 10 GiB 可用空间。
+- Enterprise Edition profile 需要用户自行具备有效 Oracle BYOL 权利，并完成 Oracle Container Registry 登录和镜像条款确认。
+- 浏览器 e2e 验证需要 Node.js 和 npm，CLI 会在 `.rapid-apex/playwright/` 下安装并运行 Playwright Chromium。
+- 安装前所选主机端口必须空闲。生成的 profile 会使用非默认端口以避开常见本地 Oracle listener，也可以通过 `--db-port`、`--em-port`、`--ords-port` 覆盖。
+- Oracle 安装介质必须能从 Oracle 官方下载地址或配置的 `--media-base` 镜像地址访问。
+
+# 故障排查
+
+| 现象 | 检查点 | 下一步 |
+| --- | --- | --- |
+| `Docker daemon is not reachable` | Docker Desktop、Colima 或目标 Docker 服务未启动。 | 启动 Docker 后重跑 `bin/rapid-apex preflight --profile <profile>`。 |
+| Enterprise 镜像不可访问 | 缺少 Oracle Registry 登录或 BYOL 镜像条款确认。 | 执行 `docker login container-registry.oracle.com`，确认所需镜像条款后重跑 preflight。 |
+| ORDS 镜像不可访问 | 当前固定 ORDS tag 可能不存在。 | 使用 Oracle 已发布的 tag 通过 `--ords-image-tag TAG` 覆盖后重跑 preflight。 |
+| 安装介质下载失败 | 网络或配置的 media mirror 不可访问。 | 检查网络后重试，或使用 `--media-base URL` 指向可访问镜像；下载失败会自动重试。 |
+| 端口 preflight 失败 | 其他进程或容器占用了所选端口。 | 查看 preflight 输出的占用来源，换端口或停止冲突 lab。 |
+| 安装中途停止 | 可能残留容器、network 或生成的数据目录。 | 运行 `bin/rapid-apex recover --profile <profile> --purge-data`，只清理当前 lab。 |
+| destroy/recover 失败 | 容器归属数据或 Docker 资源无法删除。 | 查看残留资源报告，停止剩余容器后重跑 recover，或用合适权限删除列出的数据路径。 |
+| browser smoke 登录前失败 | ORDS 可能还没就绪、APEX 仍在安装，或 Playwright 缺失。 | 先看 `bin/rapid-apex logs --profile <profile>`，再重跑 `smoke`，最后重跑 `browser-smoke` 或 `e2e`。 |
+
 
 # 旧版在线生成器链路
 

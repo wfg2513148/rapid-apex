@@ -165,6 +165,36 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 `<name>_db`, `<name>_ords`, and `<name>_network` resources and, with
 `--purge-data`, generated lab data paths.
 
+## Host Prerequisites
+
+- Docker CLI and a reachable Docker daemon are required.
+- Official Database/ORDS profiles need enough local disk for Oracle images,
+  installation media, generated lab data, Playwright, and evidence files. The
+  CLI preflight checks for at least 10 GiB free for modern official-image
+  profiles.
+- Enterprise Edition profiles require valid Oracle BYOL rights plus Oracle
+  Container Registry login and accepted image terms.
+- Browser e2e validation requires Node.js and npm so the CLI can install and
+  run Playwright Chromium under `.rapid-apex/playwright/`.
+- Selected host ports must be free before install. Generated profiles use
+  non-default ports to avoid common local Oracle listeners, but callers can
+  override them with `--db-port`, `--em-port`, and `--ords-port`.
+- Oracle installation media must be reachable from Oracle's public download
+  host or the configured `--media-base` mirror.
+
+## Troubleshooting
+
+| Symptom | What to check | Next action |
+| --- | --- | --- |
+| `Docker daemon is not reachable` | Docker Desktop, Colima, or the target Docker service is stopped. | Start Docker, then rerun `bin/rapid-apex preflight --profile <profile>`. |
+| Enterprise image is not reachable | Oracle Registry login or BYOL terms acceptance is missing. | Run `docker login container-registry.oracle.com`, accept the required image terms, then rerun preflight. |
+| ORDS image is not reachable | The pinned ORDS tag may not exist in the registry for that major version. | Use `--ords-image-tag TAG` with an Oracle-published tag and rerun preflight. |
+| Media download fails | Network access or the configured media mirror is unavailable. | Retry after checking connectivity, or use `--media-base URL` for a reachable mirror. Downloads retry automatically before failing. |
+| Port preflight fails | Another process or container owns the selected port. | Read the owner shown by preflight, choose different ports, or stop the conflicting lab. |
+| Install stops partway through | Containers, network, or generated data may remain. | Run `bin/rapid-apex recover --profile <profile> --purge-data` to clean only the selected lab. |
+| Destroy/recover fails | Container-owned data or a Docker resource could not be removed. | Review the residual resource report, stop remaining containers, then rerun recover or remove the listed data path with appropriate permissions. |
+| Browser smoke fails before login | ORDS may not be ready, APEX may still be installing, or Playwright is missing. | Check `bin/rapid-apex logs --profile <profile>`, rerun `smoke`, then rerun `browser-smoke` or `e2e`. |
+
 ## Legacy Generator Path
 
 The historical Rapid-APEX online generator remains documented below for users

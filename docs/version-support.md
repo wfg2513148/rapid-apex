@@ -150,6 +150,22 @@ Enterprise Database profiles still require explicit `--license-policy byol`.
 only the selected lab name's containers and network, and with `--purge-data`
 also removes generated lab data paths for that lab.
 
+### Operational Troubleshooting
+
+Use `preflight` before long-running installs. It checks Docker availability,
+selected image access, free disk for official-image profiles, and host port
+availability.
+
+| Area | Expected behavior | Recovery path |
+| --- | --- | --- |
+| Docker daemon | `preflight` reports Docker CLI and daemon access. | Start Docker Desktop, Colima, or the target Docker service before rerunning preflight. |
+| BYOL registry access | Enterprise profiles validate the selected Database image locally or through the registry manifest. | Log in to Oracle Container Registry and accept the required image terms. |
+| ORDS image tag | Official ORDS profiles validate the selected pinned tag. | Provide `--ords-image-tag TAG` when Oracle publishes a different patch tag for that ORDS major. |
+| Media downloads | Downloads retry before failing and remove partial files on failure. | Check network access or use `--media-base URL` for a reachable mirror. |
+| Port conflicts | `preflight` prints the occupied port and, where possible, the owning process/container. | Change profile ports or stop the selected conflicting lab/container. |
+| Interrupted install | `recover` removes only `<name>_db`, `<name>_ords`, `<name>_network`, and selected lab data with `--purge-data`. | Run `bin/rapid-apex recover --profile <profile> --purge-data`. |
+| Failed cleanup | `destroy`/`recover` reports residual containers, networks, and selected lab data paths. | Stop remaining resources, rerun recover, or remove the listed data path with appropriate permissions. |
+
 ## Real Install Coverage
 
 The following profile families have passed scripted real-install validation with
