@@ -13,6 +13,7 @@ Usage:
   rapid-apex list-versions
   rapid-apex validate [--profile FILE] [--db VERSION] [--apex VERSION] [--ords VERSION] [--license-policy demo|byol]
   rapid-apex plan [--profile FILE] [--db VERSION] [--apex VERSION] [--ords VERSION] [--license-policy demo|byol] [--name NAME] [--media-base URL] [--db-port PORT] [--ords-port PORT] [--db-image IMAGE] [--ords-image-tag TAG]
+  rapid-apex generate-profile [same options as plan] [--output FILE]
   rapid-apex preflight [same options as plan]
   rapid-apex install --dry-run [same options as plan]
   rapid-apex status [--profile FILE] [--name NAME]
@@ -21,6 +22,7 @@ Usage:
   rapid-apex browser-smoke [same options as plan] [--ords-url URL] [--evidence-dir DIR]
   rapid-apex e2e [same options as plan] [--ords-url URL] [--evidence-dir DIR] [--destroy-after] [--purge-data]
   rapid-apex destroy [--profile FILE] [--name NAME] [--purge-data]
+  rapid-apex recover [--profile FILE] [--name NAME] [--purge-data]
 
 License policy:
   The default policy is demo, which allows XE and Free editions.
@@ -41,6 +43,7 @@ rapid_apex_default_config() {
   RAPID_APEX_ORDS_PORT="8080"
   RAPID_APEX_DRY_RUN="N"
   RAPID_APEX_PROFILE=""
+  RAPID_APEX_PROFILE_OUTPUT=""
   RAPID_APEX_LICENSE_POLICY="demo"
   RAPID_APEX_ORDS_URL=""
   RAPID_APEX_EVIDENCE_DIR=""
@@ -52,6 +55,10 @@ rapid_apex_default_config() {
   RAPID_APEX_APP_ID=""
   RAPID_APEX_DESTROY_AFTER="N"
   RAPID_APEX_PURGE_DATA="N"
+  RAPID_APEX_NAME_SET="N"
+  RAPID_APEX_DB_PORT_SET="N"
+  RAPID_APEX_EM_PORT_SET="N"
+  RAPID_APEX_ORDS_PORT_SET="N"
 }
 
 rapid_apex_load_profile() {
@@ -119,6 +126,7 @@ rapid_apex_parse_options() {
         ;;
       --name)
         RAPID_APEX_NAME="${2:-}"
+        RAPID_APEX_NAME_SET="Y"
         shift 2
         ;;
       --media-base)
@@ -131,14 +139,21 @@ rapid_apex_parse_options() {
         ;;
       --db-port)
         RAPID_APEX_DB_PORT="${2:-}"
+        RAPID_APEX_DB_PORT_SET="Y"
         shift 2
         ;;
       --em-port)
         RAPID_APEX_EM_PORT="${2:-}"
+        RAPID_APEX_EM_PORT_SET="Y"
         shift 2
         ;;
       --ords-port)
         RAPID_APEX_ORDS_PORT="${2:-}"
+        RAPID_APEX_ORDS_PORT_SET="Y"
+        shift 2
+        ;;
+      --output)
+        RAPID_APEX_PROFILE_OUTPUT="${2:-}"
         shift 2
         ;;
       --ords-url)
@@ -344,6 +359,65 @@ Execution status:
 EOF
 }
 
+rapid_apex_default_lab_name() {
+  local apex_slug
+  apex_slug="${RAPID_APEX_APEX_VERSION//./}"
+  case "$RAPID_APEX_DB_VERSION" in
+    18c) printf 'apex%s-xe18c-lab\n' "$apex_slug" ;;
+    *) printf 'apex%s-%s-lab\n' "$apex_slug" "$RAPID_APEX_DB_VERSION" ;;
+  esac
+}
+
+rapid_apex_apply_generated_profile_defaults() {
+  if [[ "$RAPID_APEX_NAME_SET" == "N" ]]; then
+    RAPID_APEX_NAME="$(rapid_apex_default_lab_name)"
+  fi
+
+  if [[ "$RAPID_APEX_DB_PORT_SET" == "N" ]] &&
+     [[ "$RAPID_APEX_EM_PORT_SET" == "N" ]] &&
+     [[ "$RAPID_APEX_ORDS_PORT_SET" == "N" ]]; then
+    case "$RAPID_APEX_DB_VERSION" in
+      18c)
+        RAPID_APEX_DB_PORT="31521"
+        RAPID_APEX_EM_PORT="35500"
+        RAPID_APEX_ORDS_PORT="32513"
+        ;;
+      19c)
+        RAPID_APEX_DB_PORT="31523"
+        RAPID_APEX_EM_PORT="35502"
+        RAPID_APEX_ORDS_PORT="32515"
+        ;;
+      26ai)
+        RAPID_APEX_DB_PORT="31522"
+        RAPID_APEX_EM_PORT="35501"
+        RAPID_APEX_ORDS_PORT="32514"
+        ;;
+      26ai-ee)
+        RAPID_APEX_DB_PORT="31525"
+        RAPID_APEX_EM_PORT="35504"
+        RAPID_APEX_ORDS_PORT="32517"
+        ;;
+    esac
+  fi
+}
+
+rapid_apex_print_generated_profile() {
+  printf 'RAPID_APEX_NAME=%s\n' "$RAPID_APEX_NAME"
+  printf 'RAPID_APEX_DB_VERSION=%s\n' "$RAPID_APEX_DB_VERSION"
+  printf 'RAPID_APEX_APEX_VERSION=%s\n' "$RAPID_APEX_APEX_VERSION"
+  printf 'RAPID_APEX_ORDS_VERSION=%s\n' "$RAPID_APEX_ORDS_VERSION"
+  printf 'RAPID_APEX_LICENSE_POLICY=%s\n' "$RAPID_APEX_LICENSE_POLICY"
+  if [[ "$(rapid_apex_db_license_family "$RAPID_APEX_DB_VERSION")" == "byol" ]] || [[ -n "$RAPID_APEX_DB_IMAGE" ]]; then
+    printf 'RAPID_APEX_DB_IMAGE=%s\n' "$(rapid_apex_db_official_image)"
+  fi
+  if [[ -n "$RAPID_APEX_ORDS_IMAGE_TAG" ]]; then
+    printf 'RAPID_APEX_ORDS_IMAGE_TAG=%s\n' "$RAPID_APEX_ORDS_IMAGE_TAG"
+  fi
+  printf 'RAPID_APEX_DB_PORT=%s\n' "$RAPID_APEX_DB_PORT"
+  printf 'RAPID_APEX_EM_PORT=%s\n' "$RAPID_APEX_EM_PORT"
+  printf 'RAPID_APEX_ORDS_PORT=%s\n' "$RAPID_APEX_ORDS_PORT"
+}
+
 rapid_apex_db_service_name() {
   case "$RAPID_APEX_DB_VERSION" in
     26ai) printf '%s\n' FREEPDB1 ;;
@@ -404,6 +478,9 @@ rapid_apex_wait_for_health() {
 rapid_apex_download_file() {
   local url="$1"
   local target="$2"
+  local attempts="${RAPID_APEX_DOWNLOAD_ATTEMPTS:-3}"
+  local sleep_seconds="${RAPID_APEX_RETRY_SLEEP_SECONDS:-5}"
+  local attempt=1
 
   mkdir -p "$(dirname "$target")"
   if [[ -f "$target" ]]; then
@@ -411,11 +488,22 @@ rapid_apex_download_file() {
     return 0
   fi
 
-  printf 'Downloading media: %s\n' "$url" >&2
-  if ! curl --fail --location --show-error --output "$target" "$url"; then
+  while (( attempt <= attempts )); do
+    printf 'Downloading media: %s (attempt %s/%s)\n' "$url" "$attempt" "$attempts" >&2
+    if curl --fail --location --show-error --output "$target" "$url"; then
+      return 0
+    fi
     rm -f "$target"
-    return 1
-  fi
+    if (( attempt < attempts )); then
+      printf 'Download failed; retrying in %s seconds.\n' "$sleep_seconds" >&2
+      sleep "$sleep_seconds"
+    fi
+    attempt=$((attempt + 1))
+  done
+
+  printf 'Download failed after %s attempts: %s\n' "$attempts" "$url" >&2
+  printf 'Retry the command after checking network access or provide --media-base with a reachable mirror.\n' >&2
+  return 1
 }
 
 rapid_apex_pull_image_if_needed() {
@@ -755,10 +843,34 @@ rapid_apex_port_in_use() {
   return 1
 }
 
+rapid_apex_port_owner() {
+  local port="$1"
+  local owner=""
+
+  if command -v lsof >/dev/null 2>&1; then
+    owner="$(lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null | awk 'NR == 2 {print $1 " pid=" $2}')"
+    if [[ -n "$owner" ]]; then
+      printf '%s\n' "$owner"
+      return 0
+    fi
+  fi
+
+  if command -v docker >/dev/null 2>&1; then
+    owner="$(docker ps --format '{{.Names}}\t{{.Ports}}' 2>/dev/null | awk -v port="$port" '$0 ~ "(^|[,:])" port "->" {print $0; exit}')"
+    if [[ -n "$owner" ]]; then
+      printf '%s\n' "$owner"
+      return 0
+    fi
+  fi
+
+  printf 'owner unavailable\n'
+}
+
 rapid_apex_print_port_check() {
   local label="$1"
   local port="$2"
   local status
+  local owner
 
   if rapid_apex_port_in_use "$port"; then
     status="0"
@@ -767,7 +879,8 @@ rapid_apex_print_port_check() {
   fi
   case "$status" in
     0)
-      printf 'FAIL %-18s port %s is already in use\n' "$label" "$port"
+      owner="$(rapid_apex_port_owner "$port")"
+      printf 'FAIL %-18s port %s is already in use (%s)\n' "$label" "$port" "$owner"
       return 1
       ;;
     1)
@@ -796,6 +909,21 @@ rapid_apex_cmd_plan() {
   rapid_apex_parse_options "$@"
   rapid_apex_validate_config
   rapid_apex_print_plan
+}
+
+rapid_apex_cmd_generate_profile() {
+  rapid_apex_default_config
+  rapid_apex_parse_options "$@"
+  rapid_apex_validate_config
+  rapid_apex_apply_generated_profile_defaults
+
+  if [[ -n "$RAPID_APEX_PROFILE_OUTPUT" ]]; then
+    mkdir -p "$(dirname "$RAPID_APEX_PROFILE_OUTPUT")"
+    rapid_apex_print_generated_profile >"$RAPID_APEX_PROFILE_OUTPUT"
+    printf 'Generated profile: %s\n' "$RAPID_APEX_PROFILE_OUTPUT"
+  else
+    rapid_apex_print_generated_profile
+  fi
 }
 
 rapid_apex_cmd_install() {
@@ -978,6 +1106,94 @@ rapid_apex_evidence_dir() {
   fi
 }
 
+rapid_apex_e2e_summary_path() {
+  printf '%s/e2e-summary.json\n' "$(rapid_apex_evidence_dir)"
+}
+
+rapid_apex_json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+rapid_apex_json_value() {
+  local json="$1"
+  local key="$2"
+  printf '%s\n' "$json" |
+    sed -n 's/.*"'"$key"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' |
+    tail -n 1
+}
+
+rapid_apex_json_string_or_null() {
+  local value="$1"
+  if [[ -n "$value" ]]; then
+    printf '"%s"' "$(rapid_apex_json_escape "$value")"
+  else
+    printf 'null'
+  fi
+}
+
+rapid_apex_write_e2e_summary() {
+  local summary_path="$1"
+  local status="$2"
+  local exit_status="$3"
+  local cleanup_status="$4"
+  local started_at="$5"
+  local ended_at="$6"
+  local browser_output="${7:-}"
+  local app_id app_name app_alias final_url workspace_home application_home failure_html failure_url
+
+  app_id="$(rapid_apex_json_value "$browser_output" appId)"
+  app_name="$(rapid_apex_json_value "$browser_output" appName)"
+  app_alias="$(rapid_apex_json_value "$browser_output" appAlias)"
+  final_url="$(rapid_apex_json_value "$browser_output" finalUrl)"
+  workspace_home="$(rapid_apex_json_value "$browser_output" workspaceHome)"
+  application_home="$(rapid_apex_json_value "$browser_output" applicationHome)"
+  failure_html="$(rapid_apex_evidence_dir)/failure.html"
+  failure_url="$(rapid_apex_evidence_dir)/failure-url.txt"
+
+  mkdir -p "$(dirname "$summary_path")"
+  cat >"$summary_path" <<EOF
+{
+  "status": "$(rapid_apex_json_escape "$status")",
+  "exitStatus": ${exit_status},
+  "startedAt": "$(rapid_apex_json_escape "$started_at")",
+  "endedAt": "$(rapid_apex_json_escape "$ended_at")",
+  "profile": $(rapid_apex_json_string_or_null "$RAPID_APEX_PROFILE"),
+  "name": "$(rapid_apex_json_escape "$RAPID_APEX_NAME")",
+  "versions": {
+    "database": "$(rapid_apex_json_escape "$RAPID_APEX_DB_VERSION")",
+    "apex": "$(rapid_apex_json_escape "$RAPID_APEX_APEX_VERSION")",
+    "ords": "$(rapid_apex_json_escape "$RAPID_APEX_ORDS_VERSION")"
+  },
+  "licensePolicy": "$(rapid_apex_json_escape "$RAPID_APEX_LICENSE_POLICY")",
+  "ports": {
+    "database": ${RAPID_APEX_DB_PORT},
+    "em": ${RAPID_APEX_EM_PORT},
+    "ords": ${RAPID_APEX_ORDS_PORT}
+  },
+  "images": {
+    "database": "$(rapid_apex_json_escape "$(rapid_apex_db_official_image)")",
+    "ords": "$(rapid_apex_json_escape "$(rapid_apex_ords_official_image)")"
+  },
+  "ordsUrl": "$(rapid_apex_json_escape "$(rapid_apex_ords_url)")",
+  "workspace": "$(rapid_apex_json_escape "$RAPID_APEX_WORKSPACE")",
+  "username": "$(rapid_apex_json_escape "$RAPID_APEX_WORKSPACE_USER")",
+  "appName": $(rapid_apex_json_string_or_null "$app_name"),
+  "appId": $(rapid_apex_json_string_or_null "$app_id"),
+  "appAlias": $(rapid_apex_json_string_or_null "$app_alias"),
+  "finalUrl": $(rapid_apex_json_string_or_null "$final_url"),
+  "evidence": {
+    "directory": "$(rapid_apex_json_escape "$(rapid_apex_evidence_dir)")",
+    "workspaceHome": $(rapid_apex_json_string_or_null "$workspace_home"),
+    "applicationHome": $(rapid_apex_json_string_or_null "$application_home"),
+    "failureHtml": $(rapid_apex_json_string_or_null "$([[ -f "$failure_html" ]] && printf '%s' "$failure_html")"),
+    "failureUrl": $(rapid_apex_json_string_or_null "$([[ -f "$failure_url" ]] && printf '%s' "$failure_url")")
+  },
+  "cleanupStatus": "$(rapid_apex_json_escape "$cleanup_status")"
+}
+EOF
+  printf 'E2E summary: %s\n' "$summary_path"
+}
+
 rapid_apex_prepare_playwright() {
   local tool_dir="$RAPID_APEX_ROOT_DIR/.rapid-apex/playwright"
 
@@ -1142,10 +1358,13 @@ rapid_apex_restart_ords_after_proxy_grant() {
 
 rapid_apex_cmd_e2e() {
   local e2e_status=0
+  local cleanup_status="skipped"
+  local started_at ended_at summary_path browser_output
 
   rapid_apex_default_config
   rapid_apex_parse_options "$@"
   rapid_apex_validate_config
+  summary_path="$(rapid_apex_e2e_summary_path)"
 
   if [[ "$RAPID_APEX_DRY_RUN" == "Y" ]]; then
     printf 'Rapid-APEX e2e plan\n'
@@ -1160,11 +1379,13 @@ rapid_apex_cmd_e2e() {
         printf '     purge generated lab data\n'
       fi
     fi
+    printf '  Summary path: %s\n' "$summary_path"
     printf '\n'
     rapid_apex_print_plan
     return 0
   fi
 
+  started_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
   rapid_apex_cmd_preflight "$@" || e2e_status="$?"
   if [[ "$e2e_status" == "0" ]]; then
     rapid_apex_cmd_install "$@" || e2e_status="$?"
@@ -1185,10 +1406,25 @@ rapid_apex_cmd_e2e() {
     rapid_apex_cmd_smoke "$@" || e2e_status="$?"
   fi
   if [[ "$e2e_status" == "0" ]]; then
-    rapid_apex_cmd_browser_smoke "$@" || e2e_status="$?"
+    if browser_output="$(rapid_apex_cmd_browser_smoke "$@" 2>&1)"; then
+      printf '%s\n' "$browser_output"
+    else
+      e2e_status="$?"
+      printf '%s\n' "$browser_output" >&2
+    fi
   fi
   if [[ "$RAPID_APEX_DESTROY_AFTER" == "Y" ]]; then
-    rapid_apex_cmd_destroy "$@" || true
+    if rapid_apex_cmd_destroy "$@"; then
+      cleanup_status="passed"
+    else
+      cleanup_status="failed"
+    fi
+  fi
+  ended_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  if [[ "$e2e_status" == "0" ]]; then
+    rapid_apex_write_e2e_summary "$summary_path" "passed" "$e2e_status" "$cleanup_status" "$started_at" "$ended_at" "$browser_output"
+  else
+    rapid_apex_write_e2e_summary "$summary_path" "failed" "$e2e_status" "$cleanup_status" "$started_at" "$ended_at" "$browser_output"
   fi
   return "$e2e_status"
 }
@@ -1242,6 +1478,13 @@ rapid_apex_cmd_destroy() {
   fi
 }
 
+rapid_apex_cmd_recover() {
+  rapid_apex_default_config
+  rapid_apex_parse_options "$@"
+  printf 'Recovering selected lab resources: %s\n' "$RAPID_APEX_NAME"
+  rapid_apex_cmd_destroy "$@"
+}
+
 rapid_apex_main() {
   local command="${1:-}"
   if [[ -z "$command" ]]; then
@@ -1254,6 +1497,7 @@ rapid_apex_main() {
     list-versions) rapid_apex_cmd_list_versions "$@" ;;
     validate) rapid_apex_cmd_validate "$@" ;;
     plan) rapid_apex_cmd_plan "$@" ;;
+    generate-profile) rapid_apex_cmd_generate_profile "$@" ;;
     preflight) rapid_apex_cmd_preflight "$@" ;;
     install) rapid_apex_cmd_install "$@" ;;
     status) rapid_apex_cmd_status "$@" ;;
@@ -1262,6 +1506,7 @@ rapid_apex_main() {
     browser-smoke) rapid_apex_cmd_browser_smoke "$@" ;;
     e2e) rapid_apex_cmd_e2e "$@" ;;
     destroy) rapid_apex_cmd_destroy "$@" ;;
+    recover) rapid_apex_cmd_recover "$@" ;;
     -h|--help|help) rapid_apex_usage ;;
     *)
       printf 'Unknown command: %s\n' "$command" >&2

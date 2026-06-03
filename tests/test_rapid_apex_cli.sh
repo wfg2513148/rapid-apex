@@ -108,6 +108,84 @@ grep -q "1. preflight" <<<"$e2e_plan"
 grep -q "5. browser-smoke" <<<"$e2e_plan"
 grep -q "6. destroy" <<<"$e2e_plan"
 grep -q "purge generated lab data" <<<"$e2e_plan"
+grep -q "Summary path: $ROOT_DIR/.rapid-apex/evidence/codex-lab/e2e-summary.json" <<<"$e2e_plan"
+
+fake_e2e_dir="$(mktemp -d)"
+fake_e2e_output="$(bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh';
+  rapid_apex_cmd_preflight() { :; };
+  rapid_apex_cmd_install() { :; };
+  rapid_apex_cmd_status() { :; };
+  rapid_apex_wait_for_http() { :; };
+  rapid_apex_grant_runtime_proxy_users() { :; };
+  rapid_apex_restart_ords_after_proxy_grant() { :; };
+  rapid_apex_cmd_smoke() { :; };
+  rapid_apex_cmd_browser_smoke() { printf '{\"status\":\"passed\",\"appName\":\"Rapid Apex Test\",\"appId\":\"101\",\"appAlias\":\"RAPID-APEX-TEST\",\"finalUrl\":\"http://localhost:9090/ords/r/demo/test/home\",\"evidence\":{\"workspaceHome\":\"$fake_e2e_dir/workspace-home.png\",\"applicationHome\":\"$fake_e2e_dir/application-home.png\"}}\n'; };
+  rapid_apex_cmd_destroy() { :; };
+  rapid_apex_cmd_e2e --db 26ai --apex 26.1 --ords 26 --name fake-e2e-lab --ords-port 9090 --evidence-dir '$fake_e2e_dir' --destroy-after")"
+grep -q "E2E summary: $fake_e2e_dir/e2e-summary.json" <<<"$fake_e2e_output"
+grep -q '"status": "passed"' "$fake_e2e_dir/e2e-summary.json"
+grep -q '"exitStatus": 0' "$fake_e2e_dir/e2e-summary.json"
+grep -q '"appId": "101"' "$fake_e2e_dir/e2e-summary.json"
+grep -q '"finalUrl": "http://localhost:9090/ords/r/demo/test/home"' "$fake_e2e_dir/e2e-summary.json"
+grep -q '"cleanupStatus": "passed"' "$fake_e2e_dir/e2e-summary.json"
+if grep -q "demo/demo\\|RAPID_APEX_WORKSPACE_PASSWORD\\|password" "$fake_e2e_dir/e2e-summary.json"; then
+  echo "e2e summary must not write passwords" >&2
+  exit 1
+fi
+rm -rf "$fake_e2e_dir"
+
+fake_failed_e2e_dir="$(mktemp -d)"
+if bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh';
+  rapid_apex_cmd_preflight() { return 2; };
+  rapid_apex_cmd_e2e --db 26ai --apex 26.1 --ords 26 --name failed-e2e-lab --evidence-dir '$fake_failed_e2e_dir'" >/tmp/rapid-apex-failed-e2e.out 2>&1; then
+  echo "expected fake failed e2e to return non-zero" >&2
+  rm -rf "$fake_failed_e2e_dir" /tmp/rapid-apex-failed-e2e.out
+  exit 1
+fi
+grep -q '"status": "failed"' "$fake_failed_e2e_dir/e2e-summary.json"
+grep -q '"exitStatus": 2' "$fake_failed_e2e_dir/e2e-summary.json"
+rm -rf "$fake_failed_e2e_dir" /tmp/rapid-apex-failed-e2e.out
+
+generated_profile="$(mktemp)"
+"$CLI" generate-profile --db 26ai --apex 26.1 --ords 26 --output "$generated_profile" >/tmp/rapid-apex-generate.out
+grep -q "Generated profile: $generated_profile" /tmp/rapid-apex-generate.out
+grep -q "RAPID_APEX_NAME=apex261-26ai-lab" "$generated_profile"
+grep -q "RAPID_APEX_DB_VERSION=26ai" "$generated_profile"
+grep -q "RAPID_APEX_APEX_VERSION=26.1" "$generated_profile"
+grep -q "RAPID_APEX_ORDS_VERSION=26" "$generated_profile"
+grep -q "RAPID_APEX_LICENSE_POLICY=demo" "$generated_profile"
+"$CLI" validate --profile "$generated_profile" >/dev/null
+rm -f "$generated_profile" /tmp/rapid-apex-generate.out
+
+generated_byol_profile="$(mktemp)"
+"$CLI" generate-profile --db 19c --apex 24.2 --ords 25 --license-policy byol --output "$generated_byol_profile" >/dev/null
+grep -q "RAPID_APEX_NAME=apex242-19c-lab" "$generated_byol_profile"
+grep -q "RAPID_APEX_LICENSE_POLICY=byol" "$generated_byol_profile"
+grep -q "RAPID_APEX_DB_IMAGE=container-registry.oracle.com/database/enterprise:19.3.0.0" "$generated_byol_profile"
+"$CLI" validate --profile "$generated_byol_profile" >/dev/null
+rm -f "$generated_byol_profile"
+
+generated_legacy_profile="$(mktemp)"
+"$CLI" generate-profile --db 18c --apex 19.1 --ords 19.2 --output "$generated_legacy_profile" >/dev/null
+grep -q "RAPID_APEX_NAME=apex191-xe18c-lab" "$generated_legacy_profile"
+grep -q "RAPID_APEX_DB_PORT=31521" "$generated_legacy_profile"
+"$CLI" validate --profile "$generated_legacy_profile" >/dev/null
+rm -f "$generated_legacy_profile"
+
+generated_ee26_profile="$(mktemp)"
+"$CLI" generate-profile --db 26ai-ee --apex 26.1 --ords 26 --license-policy byol --output "$generated_ee26_profile" >/dev/null
+grep -q "RAPID_APEX_NAME=apex261-26ai-ee-lab" "$generated_ee26_profile"
+grep -q "RAPID_APEX_DB_IMAGE=container-registry.oracle.com/database/enterprise:latest" "$generated_ee26_profile"
+"$CLI" validate --profile "$generated_ee26_profile" >/dev/null
+rm -f "$generated_ee26_profile"
+
+if "$CLI" generate-profile --db 19c --apex 24.2 --ords 25 >/tmp/rapid-apex-generate-byol.out 2>&1; then
+  echo "expected 19c profile generation to require BYOL license policy" >&2
+  rm -f /tmp/rapid-apex-generate-byol.out
+  exit 1
+fi
+grep -q "requires --license-policy byol" /tmp/rapid-apex-generate-byol.out
+rm -f /tmp/rapid-apex-generate-byol.out
 
 byol_output="$("$CLI" plan --db 19c --apex 24.2 --ords 25 --license-policy byol --name oracle19c-lab)"
 grep -q "Name: oracle19c-lab" <<<"$byol_output"
@@ -191,8 +269,44 @@ chmod +x "$fake_local_image_bin/docker"
 pull_skip_output="$(PATH="$fake_local_image_bin:$PATH" bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_pull_image_if_needed container-registry.oracle.com/database/enterprise:19.3.0.0")"
 grep -q "Docker image already exists locally: container-registry.oracle.com/database/enterprise:19.3.0.0" <<<"$pull_skip_output"
 
+fake_retry_bin="$(mktemp -d)"
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin"' EXIT
+retry_count_file="$(mktemp)"
+cat >"$fake_retry_bin/curl" <<'FAKE_RETRY_CURL'
+#!/usr/bin/env bash
+set -euo pipefail
+count=0
+if [[ -f "${RAPID_APEX_RETRY_COUNT_FILE:?}" ]]; then
+  count="$(cat "$RAPID_APEX_RETRY_COUNT_FILE")"
+fi
+count=$((count + 1))
+printf '%s' "$count" >"$RAPID_APEX_RETRY_COUNT_FILE"
+target=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --output) target="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+if (( count < 2 )); then
+  exit 22
+fi
+printf 'ok\n' >"$target"
+FAKE_RETRY_CURL
+chmod +x "$fake_retry_bin/curl"
+retry_target="$(mktemp)"
+rm -f "$retry_target"
+PATH="$fake_retry_bin:$PATH" \
+  RAPID_APEX_DOWNLOAD_ATTEMPTS=2 \
+  RAPID_APEX_RETRY_SLEEP_SECONDS=0 \
+  RAPID_APEX_RETRY_COUNT_FILE="$retry_count_file" \
+  bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_download_file https://example.invalid/apex.zip '$retry_target'"
+grep -q "ok" "$retry_target"
+grep -q "2" "$retry_count_file"
+rm -f "$retry_count_file" "$retry_target"
+
 fake_proxy_bin="$(mktemp -d)"
-trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_proxy_bin"' EXIT
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin" "$fake_proxy_bin"' EXIT
 proxy_args_capture="$(mktemp)"
 proxy_sql_capture="$(mktemp)"
 restart_capture="$(mktemp)"
@@ -229,5 +343,56 @@ restart_output="$(PATH="$fake_proxy_bin:$PATH" RAPID_APEX_RESTART_CAPTURE="$rest
 grep -q "restart proxy-lab_ords" "$restart_capture"
 grep -q "waited http://localhost:32523/ords/ proxy-lab_ords" <<<"$restart_output"
 rm -f "$restart_capture"
+
+fake_port_bin="$(mktemp -d)"
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin" "$fake_proxy_bin" "$fake_port_bin"' EXIT
+cat >"$fake_port_bin/docker" <<'FAKE_PORT_DOCKER'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+  info) exit 0 ;;
+  ps)
+    if [[ "${2:-}" == "--format" ]]; then
+      printf 'owner_db\t0.0.0.0:9090->8080/tcp\n'
+    fi
+    exit 0
+    ;;
+esac
+exit 0
+FAKE_PORT_DOCKER
+chmod +x "$fake_port_bin/docker"
+preflight_port_output="$(PATH="$fake_port_bin:$PATH" bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_default_config; rapid_apex_parse_options --db 26ai --apex 26.1 --ords 26 --name port-lab --db-port 31522 --em-port 35501 --ords-port 9090; rapid_apex_print_port_check 'ORDS HTTP' \"\$RAPID_APEX_ORDS_PORT\"" 2>&1 || true)"
+grep -q "port 9090 is already in use" <<<"$preflight_port_output"
+grep -q "owner_db" <<<"$preflight_port_output"
+
+fake_recover_bin="$(mktemp -d)"
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin" "$fake_proxy_bin" "$fake_port_bin" "$fake_recover_bin"' EXIT
+recover_capture="$(mktemp)"
+cat >"$fake_recover_bin/docker" <<'FAKE_RECOVER_DOCKER'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >>"${RAPID_APEX_RECOVER_CAPTURE:?}"
+case "${1:-}" in
+  info) exit 0 ;;
+  container)
+    [[ "${2:-}" == "inspect" ]] && exit 0
+    ;;
+  rm) exit 0 ;;
+  network)
+    case "${2:-}" in
+      inspect) exit 0 ;;
+      rm) exit 0 ;;
+    esac
+    ;;
+esac
+exit 0
+FAKE_RECOVER_DOCKER
+chmod +x "$fake_recover_bin/docker"
+recover_output="$(PATH="$fake_recover_bin:$PATH" RAPID_APEX_RECOVER_CAPTURE="$recover_capture" "$CLI" recover --name recover-lab)"
+grep -q "Recovering selected lab resources: recover-lab" <<<"$recover_output"
+grep -q "rm -f recover-lab_ords" "$recover_capture"
+grep -q "rm -f recover-lab_db" "$recover_capture"
+grep -q "network rm recover-lab_network" "$recover_capture"
+rm -f "$recover_capture"
 
 echo "rapid-apex CLI guard passed"
