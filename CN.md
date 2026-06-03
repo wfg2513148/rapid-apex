@@ -14,12 +14,13 @@
 
 # CLI 预览
 
-新的 CLI 会作为一站式 APEX demo/test 环境的统一入口。目前已支持版本查看、profile 校验、安装前检查、状态/日志/清理辅助命令和 dry-run 安装计划。
+新的 CLI 会作为一站式 APEX demo/test 环境的统一入口。目前已支持版本查看、profile 生成与校验、安装前检查、状态/日志/清理/恢复辅助命令、dry-run 安装计划和 e2e 验证摘要。
 
 ```bash
 bin/rapid-apex list-versions
 bin/rapid-apex validate --db 26ai --apex 26.1 --ords 26
 bin/rapid-apex plan --db 26ai --apex 26.1 --ords 26 --name apex261-lab
+bin/rapid-apex generate-profile --db 26ai --apex 26.1 --ords 26 --output profiles/custom-26ai.env
 bin/rapid-apex preflight --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex install --dry-run --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex status --profile profiles/26ai-apex261-ords26.env
@@ -28,6 +29,7 @@ bin/rapid-apex smoke --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex browser-smoke --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex destroy --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex recover --profile profiles/26ai-apex261-ords26.env
 ```
 
 默认数据库安装策略是 `demo`，只允许 Oracle XE 或 Free 版本。Enterprise Edition 场景统一视为 BYOL 目标，需要显式确认用户已具备有效 Oracle license/terms：
@@ -37,7 +39,7 @@ bin/rapid-apex plan --db 19c --apex 24.2 --ords 25 --license-policy byol
 bin/rapid-apex plan --db 26ai-ee --apex 26.1 --ords 26 --license-policy byol
 ```
 
-`e2e` 是脚本化端到端链路：会依次执行 preflight、安装、容器状态检查、HTTP smoke 检查，以及真实浏览器验证。浏览器验证会登录 `demo` workspace，创建一个新的 APEX application，并用 `demo/demo` 登录新应用。默认截图证据会写入 `.rapid-apex/evidence/<lab-name>/`。只有需要验证后停止环境时才加 `--destroy-after`；如果连生成的数据目录也要删除，再加 `--purge-data`。
+`e2e` 是脚本化端到端链路：会依次执行 preflight、安装、容器状态检查、HTTP smoke 检查，以及真实浏览器验证。浏览器验证会登录 `demo` workspace，创建一个新的 APEX application，并用 `demo/demo` 登录新应用。默认截图证据会写入 `.rapid-apex/evidence/<lab-name>/`，同时生成 `e2e-summary.json`，记录版本、镜像、端口、最终 URL、截图路径、运行状态和清理状态。只有需要验证后停止环境时才加 `--destroy-after`；如果连生成的数据目录也要删除，再加 `--purge-data`。
 
 Rapid-APEX 会优先使用 Oracle Container Registry 上的 Oracle 官方 Database / ORDS 镜像。旧 Dockerfile 构建链路只作为没有官方镜像路径时的 fallback。
 新版 ORDS 官方镜像计划默认使用固定的大版本 tag，不再漂移到 `latest`；如果需要指定 Oracle 已发布的具体补丁 tag，可以使用 `--ords-image-tag TAG` 覆盖。
@@ -55,7 +57,65 @@ Rapid-APEX 会优先使用 Oracle Container Registry 上的 Oracle 官方 Databa
 | 26ai Enterprise BYOL | 26.1 | 26.x | `profiles/26ai-ee-*` |
 
 
-# 创建新的APEX实例
+# CLI 快速开始
+
+创建一个 demo-policy 的 26ai Free 测试环境：
+
+```bash
+bin/rapid-apex generate-profile \
+  --db 26ai \
+  --apex 26.1 \
+  --ords 26 \
+  --output profiles/my-26ai-lab.env
+
+bin/rapid-apex validate --profile profiles/my-26ai-lab.env
+bin/rapid-apex preflight --profile profiles/my-26ai-lab.env
+bin/rapid-apex install --profile profiles/my-26ai-lab.env
+bin/rapid-apex e2e --profile profiles/my-26ai-lab.env
+```
+
+创建 legacy 18c XE 测试环境：
+
+```bash
+bin/rapid-apex generate-profile \
+  --db 18c \
+  --apex 19.1 \
+  --ords 19.2 \
+  --output profiles/my-18c-lab.env
+```
+
+Enterprise Edition 兼容性 profile 需要用户自行具备并确认有效 Oracle license/terms：
+
+```bash
+bin/rapid-apex generate-profile \
+  --db 19c \
+  --apex 24.2 \
+  --ords 25 \
+  --license-policy byol \
+  --output profiles/my-19c-lab.env
+
+bin/rapid-apex generate-profile \
+  --db 26ai-ee \
+  --apex 26.1 \
+  --ords 26 \
+  --license-policy byol \
+  --output profiles/my-26ai-ee-lab.env
+```
+
+如果安装中途失败，可以只清理当前 lab 对应的资源：
+
+```bash
+bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
+```
+
+`recover` 只针对所选 lab name 对应的 `<name>_db`、`<name>_ords`、`<name>_network` 和生成的数据目录，不会主动清理无关容器。
+
+
+# 旧版在线生成器链路
+
+以下内容保留原始 Rapid-APEX 在线生成器/XE 18c 链路说明。新建环境时优先使用上面的 `bin/rapid-apex` CLI。
+
+## 创建新的APEX实例
 
 ## 生成安装命令
 

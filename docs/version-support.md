@@ -100,6 +100,7 @@ Use the CLI for new workflows:
 bin/rapid-apex list-versions
 bin/rapid-apex validate --db 26ai --apex 26.1 --ords 26
 bin/rapid-apex plan --db 26ai --apex 26.1 --ords 26 --name apex261-lab
+bin/rapid-apex generate-profile --db 26ai --apex 26.1 --ords 26 --output profiles/custom-26ai.env
 bin/rapid-apex preflight --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex install --dry-run --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex status --profile profiles/26ai-apex261-ords26.env
@@ -108,6 +109,7 @@ bin/rapid-apex smoke --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex browser-smoke --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex destroy --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex recover --profile profiles/26ai-apex261-ords26.env
 ```
 
 Current `install` execution is enabled for the legacy 18c XE + ORDS
@@ -119,6 +121,34 @@ validation. The `e2e` command runs the whole scripted path from preflight throug
 real browser application creation and login validation. Database 19c profiles
 require Oracle Container Registry access to an accepted BYOL image before
 preflight can pass.
+
+### E2E Evidence Summary
+
+Every real `e2e` run writes a machine-readable summary to:
+
+```text
+.rapid-apex/evidence/<lab-name>/e2e-summary.json
+```
+
+The summary records the selected profile, product versions, license policy,
+host ports, selected Database/ORDS image references, ORDS URL, workspace/user
+name, generated application metadata when browser validation succeeds, final
+URL, screenshot paths, exit status, and cleanup status. Passwords and tokens
+are not written to the summary.
+
+Use `--evidence-dir DIR` when evidence should be written outside the default
+repository-local `.rapid-apex/evidence/` path.
+
+### Profile Generation And Recovery
+
+`generate-profile` creates a reusable shell profile from a selected
+Database/APEX/ORDS combination. It auto-selects the known default lab name,
+ports, and Enterprise image/tag defaults for supported profile families.
+Enterprise Database profiles still require explicit `--license-policy byol`.
+
+`recover` is the scoped cleanup command for interrupted installs. It targets
+only the selected lab name's containers and network, and with `--purge-data`
+also removes generated lab data paths for that lab.
 
 ## Real Install Coverage
 
