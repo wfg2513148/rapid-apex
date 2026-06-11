@@ -1,6 +1,6 @@
 # Rapid-APEX Maintainer Roadmap
 
-This roadmap tracks the current v1.2.0 stabilization work for Rapid-APEX as an
+This roadmap tracks the current v1.2.x stabilization work for Rapid-APEX as an
 open-source toolkit for reproducible Oracle APEX developer environments.
 
 ## Completed For v1.2.0

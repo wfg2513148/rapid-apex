@@ -6,10 +6,9 @@ Rapid-APEX is an MIT-licensed open-source toolkit for quickly provisioning repro
 
 It is designed for Oracle APEX developers, trainers, consultants, and maintainers who need disposable test environments across different APEX and ORDS versions for learning, demos, upgrade testing, troubleshooting, and extension development.
 
-> Project status: Rapid-APEX is in v1.2.0 stabilization. The CLI path can plan,
-> install, validate, and clean up representative legacy and modern APEX lab
-> profiles. The original online-generator flow is kept as historical legacy
-> documentation.
+> Project status: Rapid-APEX is in v1.2.x stabilization. New environments are
+> created through the `bin/rapid-apex` CLI and reusable profiles. The historical
+> online generator is no longer the primary workflow.
 
 ## Why Rapid-APEX exists
 
@@ -25,9 +24,9 @@ Current version catalog supports:
 - **Oracle APEX:** 26.1, 24.2, 24.1, 23.2, 23.1, 22.2, 22.1, 21.2, 21.1, 20.2, 20.1, 19.2, 19.1, 18.2, 18.1, 5.1.4, 5.0.4
 - **Oracle ORDS:** 26.x, 25.x, 24.x, 23.x, 22.x, 21.x, 20.x, 19.2, 18.4, 18.2, 18.1, 3.0.12
 
-The original installer path remains the legacy XE 18c flow. Newer database and
-ORDS families are recognized by the version catalog and should be implemented
-through explicit modern installer paths. See
+The legacy XE 18c flow is still supported, and modern Database/ORDS profiles use
+explicit official-image installer paths instead of the historical online
+generator. See
 [`docs/version-support.md`](docs/version-support.md).
 
 ## Maintainer Roadmap
@@ -65,6 +64,39 @@ bin/rapid-apex browser-smoke --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex destroy --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex recover --profile profiles/26ai-apex261-ords26.env
+```
+
+### Workflow At A Glance
+
+```mermaid
+flowchart LR
+  User["User"] --> CLI["bin/rapid-apex"]
+  CLI --> Matrix["Version catalog<br/>tools/version-matrix.sh"]
+  CLI --> Profile["Profile<br/>profiles/*.env"]
+  Profile --> Plan["Resolved install plan"]
+  Plan --> Docker["Docker host"]
+  Docker --> DB["Oracle Database"]
+  Docker --> ORDS["ORDS"]
+  ORDS --> APEX["Oracle APEX"]
+  CLI --> Evidence["Smoke/e2e evidence<br/>.rapid-apex/evidence/"]
+```
+
+```mermaid
+flowchart TD
+  A["Pick Database/APEX/ORDS versions"] --> B["Generate or select a profile"]
+  B --> C["validate"]
+  C --> D["plan or install --dry-run"]
+  D --> E["preflight"]
+  E --> F{"Preflight passed?"}
+  F -- "No" --> G["Fix Docker, registry, disk, media, or port issue"]
+  G --> E
+  F -- "Yes" --> H["install"]
+  H --> I["status/logs"]
+  I --> J["smoke or browser-smoke"]
+  J --> K["e2e evidence summary"]
+  H --> L{"Interrupted install?"}
+  L -- "Yes" --> M["recover --purge-data"]
+  L -- "No" --> J
 ```
 
 Database installs use the `demo` license policy by default, which allows Oracle
@@ -195,121 +227,145 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 | Destroy/recover fails | Container-owned data or a Docker resource could not be removed. | Review the residual resource report, stop remaining containers, then rerun recover or remove the listed data path with appropriate permissions. |
 | Browser smoke fails before login | ORDS may not be ready, APEX may still be installing, or Playwright is missing. | Check `bin/rapid-apex logs --profile <profile>`, rerun `smoke`, then rerun `browser-smoke` or `e2e`. |
 
-## Legacy Generator Path
+## Current Installation Workflow
 
-The historical Rapid-APEX online generator remains documented below for users
-who need the original XE 18c flow. New workflows should prefer
-`bin/rapid-apex`.
+Rapid-APEX no longer asks users to open an APEX application wizard and copy
+generated shell commands. The current workflow is repository-local:
 
-### Get Installation Commands
+1. Select a supported Database/APEX/ORDS combination.
+2. Generate or reuse a profile file under `profiles/`.
+3. Validate the profile.
+4. Run preflight checks for Docker, image access, disk space, and ports.
+5. Install the lab.
+6. Run smoke or e2e validation.
 
-Visit the Rapid-APEX generator:
+### Create a Profile
 
-<https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX>
-
-Click **Generate New APEX Instance**.
-
-![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190926221241.png)
-
-### Base Information Collection
-
-In the popup dialog, enter your **remote machine IP address**, **installation path**, and **OS version**.
-
-![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190926222346.png)
-
-### Database Information Collection
-
-Complete the database information collection step.
-
-![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190929131529.png)
-
-The legacy automation path currently installs **Oracle Database XE 18c**.
-Database 19c and 26ai are tracked in the version catalog for modernization work.
-
-Three download options are supported:
-
-1. **Quick selection**: download installation files from the default online storage, `AWS S3 (East Asia)`.
-2. **Provide a valid full download URL**: for example, `https://mybucket.s3.ap-northeast-1.amazonaws.com/oracle-database-xe-18c-1.0-1.x86_64.rpm`.
-3. **Provide a valid local file path**: for example, `/root/oracle-database-xe-18c-1.0-1.x86_64.rpm`.
-
-### APEX Information Collection
-
-![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190929131648.png)
-
-### ORDS Information Collection
-
-![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190929131726.png)
-
-### Finish
-
-After the generator completes, copy the generated commands, paste them into a terminal on your target server, and press **Enter** to start the installation process.
-
-You can also click **Finish** in the top-right corner of the page to save your configuration.
-
-![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190927130215.png)
-
-## Install Your New APEX Instance
-
-### Execute Installation Commands
-
-Copy the generated commands and paste them into a terminal window on your remote server.
-
-![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190926223113.png)
-
-The installation process may take **30 minutes to several hours** because it downloads installation media, builds Docker images for the database and ORDS, and starts the containers automatically.
-
-If everything goes well, you will see a result similar to the following screenshot.
-
-![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190928074719.png)
-
-## Verify Your New APEX Instance
-
-### Check Docker Images and Containers
-
-Two Docker containers should be running and both should be healthy.
+For a current Oracle Database Free lab:
 
 ```bash
-docker ps -a
+bin/rapid-apex generate-profile \
+  --db 26ai \
+  --apex 26.1 \
+  --ords 26 \
+  --output profiles/my-26ai-lab.env
 ```
 
-![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190927130445.png)
-
-You should also see four Docker images.
+For a legacy XE 18c lab:
 
 ```bash
-docker images
+bin/rapid-apex generate-profile \
+  --db 18c \
+  --apex 19.1 \
+  --ords 19.2 \
+  --output profiles/my-18c-lab.env
 ```
 
-![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190927130654.png)
-
-### Login to APEX
-
-Access the APEX administrator URL and verify that the environment is ready.
-
-![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190926230438.png)
-
-![](https://oracle-apex-bucket.s3-ap-northeast-1.amazonaws.com/images/20190927124836.png)
-
-### Connect to Oracle Database
-
-#### Connect to the database from inside the Docker container
-
-Example connection strings:
-
-- **CDB:** `sqlplus sys/<db-password>@YOUR_REMOTE_SERVER_IP:1521/XE as sysdba`
-- **PDB:** `sqlplus sys/<db-password>@YOUR_REMOTE_SERVER_IP:1521/XEPDB1 as sysdba`
-
-#### Connect to the database from outside the Docker container
+Enterprise Edition profiles require BYOL acknowledgement and Oracle Container
+Registry access:
 
 ```bash
-sqlplus sys/<db-password>@YOUR_REMOTE_SERVER_IP:YOUR_DB_PORT/XE as sysdba
-sqlplus sys/<db-password>@YOUR_REMOTE_SERVER_IP:YOUR_DB_PORT/XEPDB1 as sysdba
+bin/rapid-apex generate-profile \
+  --db 19c \
+  --apex 24.2 \
+  --ords 25 \
+  --license-policy byol \
+  --output profiles/my-19c-lab.env
 ```
 
-### Review or Modify Configuration
+### Validate and Inspect the Plan
 
-- **DB data files:** `/root/rapid-apex/oradata/`
-- **ORDS configuration files:** `/root/rapid-apex/oracle-ords/`
+```bash
+bin/rapid-apex validate --profile profiles/my-26ai-lab.env
+bin/rapid-apex plan --profile profiles/my-26ai-lab.env
+bin/rapid-apex install --dry-run --profile profiles/my-26ai-lab.env
+```
+
+`validate` checks the selected versions and license policy. `plan` and
+`install --dry-run` show the resolved Database image, ORDS image or media,
+ports, generated lab name, and installation family before any long-running work
+starts.
+
+### Run Preflight
+
+```bash
+bin/rapid-apex preflight --profile profiles/my-26ai-lab.env
+```
+
+Preflight checks Docker availability, selected image access, disk space for
+official-image profiles, and host port availability. Resolve any preflight
+failure before starting installation.
+
+### Install the APEX Lab
+
+```bash
+bin/rapid-apex install --profile profiles/my-26ai-lab.env
+```
+
+Installation can take 30 minutes to several hours depending on Oracle image
+pulls, installation media downloads, host CPU, disk, and network speed.
+
+### Validate the Running Lab
+
+Use the CLI helpers instead of manually interpreting generated shell output:
+
+```bash
+bin/rapid-apex status --profile profiles/my-26ai-lab.env
+bin/rapid-apex logs --profile profiles/my-26ai-lab.env
+bin/rapid-apex smoke --profile profiles/my-26ai-lab.env
+bin/rapid-apex browser-smoke --profile profiles/my-26ai-lab.env
+```
+
+For a full scripted verification, run:
+
+```bash
+bin/rapid-apex e2e --profile profiles/my-26ai-lab.env
+```
+
+The `e2e` command runs preflight, install, status, HTTP smoke validation, and a
+real browser flow. Evidence is written to
+`.rapid-apex/evidence/<lab-name>/e2e-summary.json`.
+
+### Access APEX and the Database
+
+Generated profiles define `RAPID_APEX_ORDS_PORT`, `RAPID_APEX_DB_PORT`, and
+`RAPID_APEX_EM_PORT`. Use those values to build local URLs and connection
+strings.
+
+The default APEX entry point is:
+
+```text
+http://localhost:<RAPID_APEX_ORDS_PORT>/ords/
+```
+
+Supported install paths create a `demo` workspace and `demo` developer account
+with password `demo` for browser validation. Database connection details depend
+on the selected Database family and profile ports; inspect the generated profile
+and `bin/rapid-apex plan --profile <profile>` output before connecting.
+
+### Recover or Remove a Lab
+
+If installation stops partway through, recover only the selected lab resources:
+
+```bash
+bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
+```
+
+When a lab is no longer needed:
+
+```bash
+bin/rapid-apex destroy --profile profiles/my-26ai-lab.env --purge-data
+```
+
+Both commands are scoped to the selected lab name and do not intentionally clean
+unrelated Docker resources.
+
+## Historical Online Generator
+
+The old Rapid-APEX online generator at
+<https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX> is retained only as
+historical context for the original XE 18c command-generation flow. New users
+should use `bin/rapid-apex` and profile files instead.
 
 ## Contributing
 

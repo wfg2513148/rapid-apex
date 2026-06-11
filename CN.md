@@ -2,15 +2,14 @@
 
 
 
-> [Oracle APEX](https://apex.oracle.com/zh-cn/) 的安装过程比较繁琐，涉及到东西比较多，特别是在结合ORDS时，总是容易犯错。另外，如果你想快速搭建一套测试环境，但需要特定版本的APEX/ORDS来验证测试某些功能时，每次重新搭环境也会浪费不少时间。
-> [Rapid-APEX](https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX) 是可以让你从重复繁琐的安装过程中解脱出来，通过简单地设置你要搭建的环境信息，就可以生成对应的安装命令，直接执行即可完成相应的安装配置。
+> [Oracle APEX](https://apex.oracle.com/zh-cn/) 的安装过程比较繁琐，涉及 Oracle Database、APEX、ORDS、Docker 镜像、端口和安装介质等多项配置。Rapid-APEX 现在通过仓库内的 `bin/rapid-apex` CLI 和可复用 profile 来创建可重复的 APEX 测试环境，不再以在线 APEX 应用向导生成安装脚本作为主流程。
 
 > 当前版本目录支持的产品版本:
 > - **Oracle Database:** XE 18c, 19c Enterprise, 26ai Free, 26ai Enterprise
 > - **Oracle APEX:** 26.1, 24.2, 24.1, 23.2, 23.1, 22.2, 22.1, 21.2, 21.1, 20.2, 20.1, 19.2, 19.1, 18.2, 18.1, 5.1.4, 5.0.4
 > - **Oracle ORDS:** 26.x, 25.x, 24.x, 23.x, 22.x, 21.x, 20.x, 19.2, 18.4, 18.2, 18.1, 3.0.12
 >
-> 原始安装脚本仍是 Oracle Database XE 18c 的 legacy 链路。19c、26ai 以及新版 ORDS 的完整安装链路会按版本目录继续现代化实现。
+> 当前真实执行链路支持 legacy 18c XE + ORDS 3/18/19/20/21 组合，以及现代 Database + ORDS 官方镜像 profiles。旧版在线生成器仅作为历史链路保留。
 
 # CLI 预览
 
@@ -30,6 +29,39 @@ bin/rapid-apex browser-smoke --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex destroy --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex recover --profile profiles/26ai-apex261-ords26.env
+```
+
+# 工作链路图示
+
+```mermaid
+flowchart LR
+  User["用户"] --> CLI["bin/rapid-apex"]
+  CLI --> Matrix["版本目录<br/>tools/version-matrix.sh"]
+  CLI --> Profile["Profile<br/>profiles/*.env"]
+  Profile --> Plan["解析后的安装计划"]
+  Plan --> Docker["Docker 主机"]
+  Docker --> DB["Oracle Database"]
+  Docker --> ORDS["ORDS"]
+  ORDS --> APEX["Oracle APEX"]
+  CLI --> Evidence["Smoke/e2e 证据<br/>.rapid-apex/evidence/"]
+```
+
+```mermaid
+flowchart TD
+  A["选择 Database/APEX/ORDS 版本"] --> B["生成或选择 profile"]
+  B --> C["validate 校验版本和许可策略"]
+  C --> D["plan 或 install --dry-run 查看计划"]
+  D --> E["preflight 检查 Docker、镜像、磁盘和端口"]
+  E --> F{"preflight 通过?"}
+  F -- "否" --> G["修复 Docker、Registry、磁盘、介质或端口问题"]
+  G --> E
+  F -- "是" --> H["install 安装环境"]
+  H --> I["status/logs 查看运行状态"]
+  I --> J["smoke 或 browser-smoke 验证"]
+  J --> K["e2e 生成验证证据摘要"]
+  H --> L{"安装中断?"}
+  L -- "是" --> M["recover --purge-data 清理当前 lab"]
+  L -- "否" --> J
 ```
 
 默认数据库安装策略是 `demo`，只允许 Oracle XE 或 Free 版本。Enterprise Edition 场景统一视为 BYOL 目标，需要显式确认用户已具备有效 Oracle license/terms：
@@ -133,124 +165,126 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 | browser smoke 登录前失败 | ORDS 可能还没就绪、APEX 仍在安装，或 Playwright 缺失。 | 先看 `bin/rapid-apex logs --profile <profile>`，再重跑 `smoke`，最后重跑 `browser-smoke` 或 `e2e`。 |
 
 
-# 旧版在线生成器链路
+# 当前安装工作链路
 
-以下内容保留原始 Rapid-APEX 在线生成器/XE 18c 链路说明。新建环境时优先使用上面的 `bin/rapid-apex` CLI。
+Rapid-APEX 现在不再要求用户进入在线 APEX 应用向导并复制生成的 shell 命令。当前主流程在仓库本地完成：
 
-## 创建新的APEX实例
+1. 选择支持的 Database/APEX/ORDS 版本组合。
+2. 生成或复用 `profiles/` 下的 profile 文件。
+3. 校验 profile。
+4. 执行 preflight，检查 Docker、镜像访问、磁盘空间和端口。
+5. 安装 lab。
+6. 执行 smoke 或 e2e 验证。
 
-## 生成安装命令
+## 创建 profile
 
-[https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX](https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX)
+创建当前推荐的 Oracle Database Free 测试环境：
 
-> 点击 "Generate New APEX Instance" 按钮
-
-![](https://wangfanggang.oss-cn-shanghai.aliyuncs.com/images/20190926221241.png)
-
-## 基本信息收集
-
-> 在弹出窗口中，输入 **要安装的服务器IP地址**, **要安装的路径** and **操作系统版本**等信息。
-
-![](https://wangfanggang.oss-cn-shanghai.aliyuncs.com/images/20190926222346.png)
-
-
-## 数据库信息收集
-
-
-![](https://wangfanggang.oss-cn-shanghai.aliyuncs.com/images/20190929131529.png)
-
-> 当前只有 **Oracle Database XE 18c** 
-
-> 对于安装文件，支持3种方式：
-> 1. **快捷链接**: 选择快捷链接可以从默认的存储库下载安装介质 `AWS S3 (East Asia)`，速度可能比较慢；
-> 2. **提供完整下载url**: 如果你已经将安装介质上传到互联网上，可以提供诸如下面格式的链接："`https://mybucket.s3.ap-northeast-1.amazonaws.com/oracle-database-xe-18c-1.0-1.x86_64.rpm`"
-> 3. **提供服务器上的路径**: 如果你已经将安装介质下载到待安装的服务器，可以提供下列格式的地址："`/root/oracle-database-xe-18c-1.0-1.x86_64.rpm`"
-
-
-## APEX 信息收集
-
-![](https://wangfanggang.oss-cn-shanghai.aliyuncs.com/images/20190929131648.png)
-
-## ORDS 信息收集
-
-![](https://wangfanggang.oss-cn-shanghai.aliyuncs.com/images/20190929131726.png)
-
-
-## 恭喜!!
-
-> 你已经完成最难的部分了，接下来你要做的就是：
-> - **复制**生成的安装命令,
-> - **粘贴**进你的远程命令执行窗口,
-> - **回车**启动安装;
-> - 点击"**Finish**"按钮保存你的配置。 
-
-
-![](https://wangfanggang.oss-cn-shanghai.aliyuncs.com/images/20190927130215.png)
-
-
-# 安装你的新APEX实例
-
-## 执行安装命令
-
-
-![](https://wangfanggang.oss-cn-shanghai.aliyuncs.com/images/20190926223113.png)
-
-> 整个安装过程可能持续几十分钟到几个小时（这取决于你的安装介质下载的速度）。 
-> 如果一切顺利，你将看到以下提示。 
-
-![](https://wangfanggang.oss-cn-shanghai.aliyuncs.com/images/20190928074719.png)
-
-# 验证你的新的APEX实例
-## 检查Docker镜像/容器状态
-
-> 执行以下命令，正常情况下，安装脚本会自动生成两个docker进程，并且状态应该是'healthy'；
-
-```
-docker ps -a
+```bash
+bin/rapid-apex generate-profile \
+  --db 26ai \
+  --apex 26.1 \
+  --ords 26 \
+  --output profiles/my-26ai-lab.env
 ```
 
-![](https://wangfanggang.oss-cn-shanghai.aliyuncs.com/images/20190927130445.png)
+创建 legacy 18c XE 测试环境：
 
-> 默认生成的docker镜像；
-
-```
-docker images
-```
-
-![](https://wangfanggang.oss-cn-shanghai.aliyuncs.com/images/20190927130654.png)
-
-
-## 登录你的APEX实例
-
-> 现在可以测试新生成的APEX实例了，输入你当时设置的连接信息，例如：
-
-![](https://wangfanggang.oss-cn-shanghai.aliyuncs.com/images/20190926230438.png)
-
-![](https://wangfanggang.oss-cn-shanghai.aliyuncs.com/images/20190927124836.png)
-
-> 如果一切正常的话，应该可以登录你的APEX实例了。
-
-## 连接你的数据库
-### 在docker容器中连接数据库
-
-连接字符串格式如下： 
-
-- **CDB:** `sqlplus sys/oracle123@47.98.247.100:1521/XE as sysdba`
-- **PDB:** `sqlplus sys/oracle123@47.98.247.100:1521/XEPDB1 as sysdba`
-
-
-### 在docker容器外连接数据库
-
-```
-sqlplus sys/oracle@YOUR_REMOTE_SERVER_IP:YOUR_DB_PORT/XE as sysdba
-sqlplus sys/oracle@YOUR_REMOTE_SERVER_IP:YOUR_DB_PORT/XEPDB1 as sysdba
+```bash
+bin/rapid-apex generate-profile \
+  --db 18c \
+  --apex 19.1 \
+  --ords 19.2 \
+  --output profiles/my-18c-lab.env
 ```
 
+Enterprise Edition profile 需要显式 BYOL 确认，并要求用户具备 Oracle Container Registry 访问权限：
 
-## 修改配置信息（可选）
+```bash
+bin/rapid-apex generate-profile \
+  --db 19c \
+  --apex 24.2 \
+  --ords 25 \
+  --license-policy byol \
+  --output profiles/my-19c-lab.env
+```
 
-- **DB Data File:** `/root/rapid-apex/oradata/`
-- **ORDS config file:** `/root/rapid-apex/oracle-ords/`
+## 校验并查看安装计划
+
+```bash
+bin/rapid-apex validate --profile profiles/my-26ai-lab.env
+bin/rapid-apex plan --profile profiles/my-26ai-lab.env
+bin/rapid-apex install --dry-run --profile profiles/my-26ai-lab.env
+```
+
+`validate` 用于校验版本组合和 license policy。`plan` 和 `install --dry-run` 会展示解析后的 Database 镜像、ORDS 镜像或介质、端口、lab 名称和安装族，不会启动耗时安装。
+
+## 执行安装前检查
+
+```bash
+bin/rapid-apex preflight --profile profiles/my-26ai-lab.env
+```
+
+preflight 会检查 Docker 可用性、镜像访问、官方镜像 profile 所需磁盘空间，以及主机端口占用。preflight 失败时应先修复对应问题，再开始安装。
+
+## 安装 APEX 环境
+
+```bash
+bin/rapid-apex install --profile profiles/my-26ai-lab.env
+```
+
+安装耗时通常取决于 Oracle 镜像拉取、安装介质下载、主机 CPU、磁盘和网络速度，可能需要几十分钟到几个小时。
+
+## 验证运行状态
+
+优先使用 CLI 辅助命令验证环境，而不是人工解读旧安装脚本输出：
+
+```bash
+bin/rapid-apex status --profile profiles/my-26ai-lab.env
+bin/rapid-apex logs --profile profiles/my-26ai-lab.env
+bin/rapid-apex smoke --profile profiles/my-26ai-lab.env
+bin/rapid-apex browser-smoke --profile profiles/my-26ai-lab.env
+```
+
+如果需要完整脚本化验收，运行：
+
+```bash
+bin/rapid-apex e2e --profile profiles/my-26ai-lab.env
+```
+
+`e2e` 会执行 preflight、安装、状态检查、HTTP smoke 验证和真实浏览器流程。验证证据会写入 `.rapid-apex/evidence/<lab-name>/e2e-summary.json`。
+
+## 访问 APEX 和数据库
+
+生成的 profile 中会包含 `RAPID_APEX_ORDS_PORT`、`RAPID_APEX_DB_PORT` 和 `RAPID_APEX_EM_PORT`。使用这些值拼接本地访问地址和连接串。
+
+默认 APEX 入口为：
+
+```text
+http://localhost:<RAPID_APEX_ORDS_PORT>/ords/
+```
+
+当前支持的安装链路会创建 `demo` workspace 和 `demo/demo` 开发者账号，用于浏览器验证。数据库连接信息取决于所选 Database family 和 profile 端口，连接前请先查看生成的 profile 和 `bin/rapid-apex plan --profile <profile>` 输出。
+
+## 恢复或删除 lab
+
+如果安装中途失败，只恢复当前 lab 对应资源：
+
+```bash
+bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
+```
+
+环境不再需要时：
+
+```bash
+bin/rapid-apex destroy --profile profiles/my-26ai-lab.env --purge-data
+```
+
+这两个命令都按所选 lab name 限定范围，不会主动清理无关 Docker 资源。
+
+# 旧版在线生成器
+
+旧版 Rapid-APEX 在线生成器 [https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX](https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX) 只作为原始 XE 18c 命令生成链路的历史说明保留。新用户应使用 `bin/rapid-apex` 和 profile 文件完成环境搭建。
 
 
 # 写在最后
