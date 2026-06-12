@@ -598,7 +598,7 @@ rapid_apex_check_ords_image_access() {
 
 rapid_apex_check_official_install_disk() {
   local required_kb=$((10 * 1024 * 1024))
-  local available_kb
+  local available_kb available_gib
 
   available_kb="$(df -Pk "$RAPID_APEX_ROOT_DIR" | awk 'NR == 2 {print $4}')"
   if [[ -z "$available_kb" ]]; then
@@ -606,15 +606,17 @@ rapid_apex_check_official_install_disk() {
     return 0
   fi
 
+  available_gib="$(awk -v kb="$available_kb" 'BEGIN {printf "%.1f", kb / 1024 / 1024}')"
+
   if (( available_kb < required_kb )); then
     printf 'FAIL Disk free space is %.1f GiB; official Database/ORDS profiles require at least 10.0 GiB free under %s\n' \
-      "$(awk "BEGIN {printf \"%.1f\", $available_kb / 1024 / 1024}")" \
+      "$available_gib" \
       "$RAPID_APEX_ROOT_DIR"
     return 1
   fi
 
   printf 'PASS Disk free space is %.1f GiB for official Database/ORDS profile\n' \
-    "$(awk "BEGIN {printf \"%.1f\", $available_kb / 1024 / 1024}")"
+    "$available_gib"
 }
 
 rapid_apex_install_official_db_ords() {

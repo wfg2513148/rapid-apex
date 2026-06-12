@@ -491,8 +491,26 @@ preflight_port_output="$(PATH="$fake_port_bin:$PATH" bash -c ". '$ROOT_DIR/lib/r
 grep -q "port 9090 is already in use" <<<"$preflight_port_output"
 grep -q "owner_db" <<<"$preflight_port_output"
 
+fake_disk_bin="$(mktemp -d)"
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin" "$fake_proxy_bin" "$fake_port_bin" "$fake_disk_bin"' EXIT
+cat >"$fake_disk_bin/df" <<'FAKE_DISK_DF'
+#!/usr/bin/env bash
+set -euo pipefail
+cat <<'FAKE_DISK_OUTPUT'
+Filesystem   1024-blocks      Used Available Capacity  Mounted on
+/dev/disk3s5   482797652 306996948 146958228    68%    /System/Volumes/Data
+FAKE_DISK_OUTPUT
+FAKE_DISK_DF
+chmod +x "$fake_disk_bin/df"
+disk_output="$(PATH="$fake_disk_bin:$PATH" bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_check_official_install_disk" 2>&1)"
+grep -q "PASS Disk free space is 140.2 GiB for official Database/ORDS profile" <<<"$disk_output"
+if grep -q "awk: syntax error\\|0.0 GiB" <<<"$disk_output"; then
+  echo "disk check must not emit awk errors or report 0.0 GiB for available space" >&2
+  exit 1
+fi
+
 fake_recover_bin="$(mktemp -d)"
-trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin" "$fake_proxy_bin" "$fake_port_bin" "$fake_recover_bin"' EXIT
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin" "$fake_proxy_bin" "$fake_port_bin" "$fake_disk_bin" "$fake_recover_bin"' EXIT
 recover_capture="$(mktemp)"
 cat >"$fake_recover_bin/docker" <<'FAKE_RECOVER_DOCKER'
 #!/usr/bin/env bash
