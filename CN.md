@@ -2,18 +2,38 @@
 
 
 
-> [Oracle APEX](https://apex.oracle.com/zh-cn/) 的安装过程比较繁琐，涉及 Oracle Database、APEX、ORDS、Docker 镜像、端口和安装介质等多项配置。Rapid-APEX 现在通过仓库内的 `bin/rapid-apex` CLI 和可复用 profile 来创建可重复的 APEX 测试环境，不再以在线 APEX 应用向导生成安装脚本作为主流程。
+> [Oracle APEX](https://apex.oracle.com/zh-cn/) 的安装过程比较繁琐，涉及 Oracle Database、APEX、ORDS、Docker 镜像、端口和安装介质等多项配置。Rapid-APEX 现在通过仓库内的 `bin/rapid-apex` CLI 和可复用 profile 来创建可重复的 APEX 测试环境。
+
+# 一键安装部署
+
+最快的工作链路是直接运行 CLI 的 `e2e` 命令。它会完成安装部署、状态检查、HTTP smoke、浏览器验证，并输出验证证据：
+
+```bash
+git clone https://github.com/wfg2513148/rapid-apex.git
+cd rapid-apex
+bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
+```
+
+如果已经克隆了仓库，只需要执行：
+
+```bash
+bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
+```
+
+这个 profile 会部署 Oracle Database 26ai Free、Oracle APEX 26.1 和 ORDS 26.x。验证证据默认写入 `.rapid-apex/evidence/<lab-name>/`，其中包含截图路径、端口、镜像、最终访问地址和运行结果摘要。
+
+只有需要在验证后停止环境时才加 `--destroy-after`；如果还要删除生成的数据目录，再加 `--purge-data`。
 
 > 当前版本目录支持的产品版本:
 > - **Oracle Database:** XE 18c, 19c Enterprise, 26ai Free, 26ai Enterprise
 > - **Oracle APEX:** 26.1, 24.2, 24.1, 23.2, 23.1, 22.2, 22.1, 21.2, 21.1, 20.2, 20.1, 19.2, 19.1, 18.2, 18.1, 5.1.4, 5.0.4
 > - **Oracle ORDS:** 26.x, 25.x, 24.x, 23.x, 22.x, 21.x, 20.x, 19.2, 18.4, 18.2, 18.1, 3.0.12
 >
-> 当前真实执行链路支持 legacy 18c XE + ORDS 3/18/19/20/21 组合，以及现代 Database + ORDS 官方镜像 profiles。旧版在线生成器仅作为历史链路保留。
+> 当前真实执行链路支持 legacy 18c XE + ORDS 3/18/19/20/21 组合，以及现代 Database + ORDS 官方镜像 profiles。
 
-# CLI 预览
+# 常用 CLI 命令
 
-新的 CLI 会作为一站式 APEX demo/test 环境的统一入口。目前已支持版本查看、profile 生成与校验、安装前检查、状态/日志/清理/恢复辅助命令、dry-run 安装计划和 e2e 验证摘要。
+CLI 是一站式 APEX demo/test 环境的统一入口。目前已支持版本查看、profile 生成与校验、安装前检查、状态/日志/清理/恢复辅助命令、dry-run 安装计划和 e2e 验证摘要。
 
 ```bash
 bin/rapid-apex list-versions
@@ -21,7 +41,7 @@ bin/rapid-apex validate --db 26ai --apex 26.1 --ords 26
 bin/rapid-apex plan --db 26ai --apex 26.1 --ords 26 --name apex261-lab
 bin/rapid-apex generate-profile --db 26ai --apex 26.1 --ords 26 --output profiles/custom-26ai.env
 bin/rapid-apex preflight --profile profiles/26ai-apex261-ords26.env
-bin/rapid-apex install --dry-run --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex install --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex status --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex logs --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex smoke --profile profiles/26ai-apex261-ords26.env
@@ -71,7 +91,7 @@ bin/rapid-apex plan --db 19c --apex 24.2 --ords 25 --license-policy byol
 bin/rapid-apex plan --db 26ai-ee --apex 26.1 --ords 26 --license-policy byol
 ```
 
-`e2e` 是脚本化端到端链路：会依次执行 preflight、安装、容器状态检查、HTTP smoke 检查，以及真实浏览器验证。浏览器验证会登录 `demo` workspace，创建一个新的 APEX application，并用 `demo/demo` 登录新应用。默认截图证据会写入 `.rapid-apex/evidence/<lab-name>/`，同时生成 `e2e-summary.json`，记录版本、镜像、端口、最终 URL、截图路径、运行状态和清理状态。只有需要验证后停止环境时才加 `--destroy-after`；如果连生成的数据目录也要删除，再加 `--purge-data`。
+`e2e` 是脚本化端到端链路：会依次执行 preflight、安装、容器状态检查、HTTP smoke 检查，以及真实浏览器验证。默认截图证据会写入 `.rapid-apex/evidence/<lab-name>/`，同时生成 `e2e-summary.json`，记录版本、镜像、端口、最终 URL、截图路径、运行状态和清理状态。
 
 Rapid-APEX 会优先使用 Oracle Container Registry 上的 Oracle 官方 Database / ORDS 镜像。旧 Dockerfile 构建链路只作为没有官方镜像路径时的 fallback。
 新版 ORDS 官方镜像计划默认使用固定的大版本 tag，不再漂移到 `latest`；如果需要指定 Oracle 已发布的具体补丁 tag，可以使用 `--ords-image-tag TAG` 覆盖。
@@ -89,7 +109,7 @@ Rapid-APEX 会优先使用 Oracle Container Registry 上的 Oracle 官方 Databa
 | 26ai Enterprise BYOL | 26.1 | 26.x | `profiles/26ai-ee-*` |
 
 
-# CLI 快速开始
+# 自定义 Profile
 
 创建一个 demo-policy 的 26ai Free 测试环境：
 
@@ -167,7 +187,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 
 # 当前安装工作链路
 
-Rapid-APEX 现在不再要求用户进入在线 APEX 应用向导并复制生成的 shell 命令。当前主流程在仓库本地完成：
+当前主流程在仓库本地完成：
 
 1. 选择支持的 Database/APEX/ORDS 版本组合。
 2. 生成或复用 `profiles/` 下的 profile 文件。
@@ -281,11 +301,6 @@ bin/rapid-apex destroy --profile profiles/my-26ai-lab.env --purge-data
 ```
 
 这两个命令都按所选 lab name 限定范围，不会主动清理无关 Docker 资源。
-
-# 旧版在线生成器
-
-旧版 Rapid-APEX 在线生成器 [https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX](https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX) 只作为原始 XE 18c 命令生成链路的历史说明保留。新用户应使用 `bin/rapid-apex` 和 profile 文件完成环境搭建。
-
 
 # 写在最后
 

@@ -7,8 +7,32 @@ Rapid-APEX is an MIT-licensed open-source toolkit for quickly provisioning repro
 It is designed for Oracle APEX developers, trainers, consultants, and maintainers who need disposable test environments across different APEX and ORDS versions for learning, demos, upgrade testing, troubleshooting, and extension development.
 
 > Project status: Rapid-APEX is in v1.2.x stabilization. New environments are
-> created through the `bin/rapid-apex` CLI and reusable profiles. The historical
-> online generator is no longer the primary workflow.
+> created through the `bin/rapid-apex` CLI and reusable profiles.
+
+## Quick Start: One-Command Deployment
+
+The fastest supported path is the CLI e2e command. It provisions the lab,
+checks the result, and writes validation evidence:
+
+```bash
+git clone https://github.com/wfg2513148/rapid-apex.git
+cd rapid-apex
+bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
+```
+
+If you already cloned the repository, run only:
+
+```bash
+bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
+```
+
+This profile installs an Oracle Database 26ai Free, Oracle APEX 26.1, and ORDS
+26.x lab. The `e2e` command runs preflight checks, installation, container
+status checks, HTTP smoke validation, browser validation, and an evidence
+summary under `.rapid-apex/evidence/<lab-name>/`.
+
+Add `--destroy-after` only when the lab should be stopped after validation. Add
+`--purge-data` when the generated lab data directory should also be removed.
 
 ## Why Rapid-APEX exists
 
@@ -25,8 +49,7 @@ Current version catalog supports:
 - **Oracle ORDS:** 26.x, 25.x, 24.x, 23.x, 22.x, 21.x, 20.x, 19.2, 18.4, 18.2, 18.1, 3.0.12
 
 The legacy XE 18c flow is still supported, and modern Database/ORDS profiles use
-explicit official-image installer paths instead of the historical online
-generator. See
+explicit official-image installer paths. See
 [`docs/version-support.md`](docs/version-support.md).
 
 ## Maintainer Roadmap
@@ -43,12 +66,12 @@ Planned improvements:
 - Review legacy scripts for security, portability, and maintainability
 - Create a clearer contribution path for other Oracle APEX developers
 
-## CLI Preview
+## Common CLI Tasks
 
-The new CLI is being introduced as the stable front door for one-stop APEX lab
-creation. It currently supports version discovery, profile generation and
-validation, preflight checks, environment status/log helpers, cleanup/recovery,
-dry-run installation plans, and scripted e2e evidence summaries.
+The CLI is the stable front door for one-stop APEX lab creation. It supports
+version discovery, profile generation and validation, preflight checks,
+environment status/log helpers, cleanup/recovery, dry-run installation plans,
+and scripted e2e evidence summaries.
 
 ```bash
 bin/rapid-apex list-versions
@@ -56,7 +79,7 @@ bin/rapid-apex validate --db 26ai --apex 26.1 --ords 26
 bin/rapid-apex plan --db 26ai --apex 26.1 --ords 26 --name apex261-lab
 bin/rapid-apex generate-profile --db 26ai --apex 26.1 --ords 26 --output profiles/custom-26ai.env
 bin/rapid-apex preflight --profile profiles/26ai-apex261-ords26.env
-bin/rapid-apex install --dry-run --profile profiles/26ai-apex261-ords26.env
+bin/rapid-apex install --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex status --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex logs --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex smoke --profile profiles/26ai-apex261-ords26.env
@@ -108,15 +131,10 @@ bin/rapid-apex plan --db 19c --apex 24.2 --ords 25 --license-policy byol
 bin/rapid-apex plan --db 26ai-ee --apex 26.1 --ords 26 --license-policy byol
 ```
 
-`e2e` is the scripted end-to-end path: it runs preflight checks, installation,
-container status, HTTP smoke validation, and a real browser flow that logs in to
-the `demo` workspace, creates a new APEX application, and logs in to the
-generated application with `demo/demo`. Browser evidence is written under
-`.rapid-apex/evidence/<lab-name>/` by default, including an
-`e2e-summary.json` file with versions, images, ports, final URL, screenshot
-paths, status, and cleanup status. Add `--destroy-after` only when the lab
-should be stopped after validation, and add `--purge-data` when the generated
-lab data directory should also be removed.
+`e2e` is the scripted end-to-end path. Browser evidence is written under
+`.rapid-apex/evidence/<lab-name>/` by default, including an `e2e-summary.json`
+file with versions, images, ports, final URL, screenshot paths, status, and
+cleanup status.
 
 Rapid-APEX prefers Oracle official container images from Oracle Container
 Registry for Database and ORDS. The legacy Dockerfile build path remains as a
@@ -141,7 +159,7 @@ Validated real-install profiles include:
 | 19c Enterprise BYOL | 22.1, 23.1, 24.2 | 23.x, 24.x, 25.x | `profiles/19c-*` |
 | 26ai Enterprise BYOL | 26.1 | 26.x | `profiles/26ai-ee-*` |
 
-## CLI Quickstart
+## Custom Profiles
 
 For a demo-policy Oracle Database Free lab:
 
@@ -229,8 +247,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 
 ## Current Installation Workflow
 
-Rapid-APEX no longer asks users to open an APEX application wizard and copy
-generated shell commands. The current workflow is repository-local:
+The current installation workflow is repository-local:
 
 1. Select a supported Database/APEX/ORDS combination.
 2. Generate or reuse a profile file under `profiles/`.
@@ -359,13 +376,6 @@ bin/rapid-apex destroy --profile profiles/my-26ai-lab.env --purge-data
 
 Both commands are scoped to the selected lab name and do not intentionally clean
 unrelated Docker resources.
-
-## Historical Online Generator
-
-The old Rapid-APEX online generator at
-<https://apex.oracle.com/pls/apex/f?p=75079:RAPID-APEX> is retained only as
-historical context for the original XE 18c command-generation flow. New users
-should use `bin/rapid-apex` and profile files instead.
 
 ## Contributing
 
