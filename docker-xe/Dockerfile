@@ -30,6 +30,8 @@ RUN yum install -y oracle-database-preinstall-18c && \
   yum install -y /tmp/${ORACLE_XE_RPM} && \
   rm -rf /tmp/${ORACLE_XE_RPM}
 
+RUN sed -i 's/-J-Doracle.assistants.dbca.validate.DBCredentials=false/-J-Doracle.assistants.dbca.validate.DBCredentials=false -J-Doracle.assistants.dbca.validate.ConfigurationParams=false/' /etc/init.d/oracle-xe-18c
+
 COPY ./scripts/*.sh ${ORACLE_BASE}/scripts/
 
 RUN chmod a+x ${ORACLE_BASE}/scripts/*.sh 
@@ -44,7 +46,6 @@ HEALTHCHECK --interval=1m --start-period=2m --retries=10 \
   CMD "$ORACLE_BASE/scripts/$CHECK_DB_FILE"
 
 CMD ["/bin/bash", "-lc", "exec ${ORACLE_BASE}/scripts/${RUN_FILE}"]
-
 
 
 

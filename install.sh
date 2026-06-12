@@ -34,6 +34,7 @@ ords_port=${15:-32521}
 ip_address=${16:-'localhost'}
 db_container_name=${RAPID_APEX_DB_CONTAINER:-oracle-xe}
 ords_container_name=${RAPID_APEX_ORDS_CONTAINER:-oracle-ords}
+legacy_db_timeout_seconds=${RAPID_APEX_LEGACY_DB_TIMEOUT:-2400}
 
 url_check=""
 fileName=""
@@ -55,6 +56,9 @@ echo "--------- Step 1: Download installation media ---------"
 echo ""
 
 work_path=`pwd`
+lab_name=${RAPID_APEX_LAB_NAME:-"${db_container_name%_db}"}
+db_data_volume=${RAPID_APEX_DB_VOLUME:-"${lab_name}_db_data"}
+ords_config_volume=${RAPID_APEX_ORDS_VOLUME:-"${lab_name}_ords_config"}
 apex_unzip_pid=""
 
 echo ">>> current work path is $work_path"
@@ -261,18 +265,21 @@ if [ "$db_family" != "legacy-xe-rpm" ] && [ "$db_family" != "oracle-express-cont
 fi
 
 echo ">>> docker image $docker_prefix/oracle-xe:$db_version does not exist, begin to build docker image..."
-    docker build -t $docker_prefix/oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd --build-arg DB_FILE=$db_file_name .
+    DOCKER_BUILDKIT=1 docker build --platform linux/amd64 -t $docker_prefix/oracle-xe:$db_version --build-arg DB_SYS_PWD=$db_sys_pwd --build-arg DB_FILE=$db_file_name .
 
 
 
 echo ""
 echo "--------- Step 3: startup oracle xe docker image ---------"
 echo ""
+docker volume create "$db_data_volume" >/dev/null
+docker volume create "$ords_config_volume" >/dev/null
+
 docker run -d \
   -p $db_port:1521 \
   -p $em_port:5500 \
   --name=$db_container_name \
-  --volume $work_path/oradata:/opt/oracle/oradata \
+  --volume $db_data_volume:/opt/oracle/oradata \
   --volume $work_path/apex:/tmp/apex \
   --network=$docker_network \
   $docker_prefix/oracle-xe:$db_version
@@ -290,7 +297,7 @@ while : ; do
     fi
     docker logs $db_container_name > xe_installation.log 2>&1 || true
     [[ `grep -Ei "Completed: ALTER PLUGGABLE DATABASE|Pluggable database .* opened read write|DATABASE IS READY TO USE" xe_installation.log` ]] && break
-    if [ "$wait_seconds" -ge 900 ]; then
+    if [ "$wait_seconds" -ge "$legacy_db_timeout_seconds" ]; then
       echo "Timed out waiting for oracle-xe configuration." >&2
       docker logs --tail 120 $db_container_name >&2 || true
       exit 1
@@ -348,7 +355,7 @@ docker run -d -it --network=$docker_network \
   -e SYS_PASS=$db_sys_pwd \
   -e TOMCAT_FILE_NAME=$tomcat_file_name \
   -e ORDS_INSTALL_FAMILY=$ords_install_family \
-  --volume $work_path/oracle-ords/$ords_version/config:/opt/ords \
+  --volume $ords_config_volume:/opt/ords \
   --volume $work_path/apex/images:/ords/apex-images \
   -p $ords_port:8080 \
   $docker_prefix/oracle-ords:$ords_version
@@ -370,8 +377,8 @@ echo "PDB: sqlplus sys/<password>@$ip_address:$db_port/XEPDB1 as sysdba"
 echo ""
 echo "---------------------- Config Info ----------------------"
 echo ""
-echo "Database Data File: $work_path/oradata/"
-echo "ORDS Config File: $work_path/oracle-ords/"
+echo "Database Data Volume: $db_data_volume"
+echo "ORDS Config Volume: $ords_config_volume"
 echo ""
 echo "---------------------- Docker Info ----------------------"
 echo ""

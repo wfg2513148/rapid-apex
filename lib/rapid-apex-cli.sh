@@ -1712,9 +1712,12 @@ rapid_apex_cmd_destroy() {
   if [[ "$RAPID_APEX_PURGE_DATA" == "Y" ]]; then
     local lab_dir="$RAPID_APEX_ROOT_DIR/.rapid-apex/labs/$RAPID_APEX_NAME"
     local legacy_dir
+    local legacy_volume
     local -a purge_dirs=("$lab_dir")
+    local -a purge_volumes=()
     if [[ "$RAPID_APEX_DB_VERSION" == "18c" || "$(rapid_apex_db_family "$RAPID_APEX_DB_VERSION")" == "legacy-xe-rpm" ]]; then
       purge_dirs+=("$RAPID_APEX_ROOT_DIR/oradata" "$RAPID_APEX_ROOT_DIR/oracle-ords")
+      purge_volumes+=("${RAPID_APEX_NAME}_db_data" "${RAPID_APEX_NAME}_ords_config")
     fi
 
     for legacy_dir in "${purge_dirs[@]}"; do
@@ -1731,6 +1734,19 @@ rapid_apex_cmd_destroy() {
         printf 'Removed lab data: %s\n' "$legacy_dir"
       else
         printf 'Lab data not found: %s\n' "$legacy_dir"
+      fi
+    done
+
+    for legacy_volume in "${purge_volumes[@]}"; do
+      if docker volume inspect "$legacy_volume" >/dev/null 2>&1; then
+        if docker volume rm "$legacy_volume" >/dev/null; then
+          printf 'Removed lab volume: %s\n' "$legacy_volume"
+        else
+          printf 'Failed to remove lab volume: %s\n' "$legacy_volume" >&2
+          failed="Y"
+        fi
+      else
+        printf 'Lab volume not found: %s\n' "$legacy_volume"
       fi
     done
   fi

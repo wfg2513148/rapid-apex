@@ -83,6 +83,18 @@ function _kill() {
   runuser oracle -s /bin/bash -c "${ORACLE_BASE}/scripts/${SHUTDOWN_FILE} abort"
 }
 
+function containerMemoryLimit {
+  if [ -r /sys/fs/cgroup/memory/memory.limit_in_bytes ]; then
+    cat /sys/fs/cgroup/memory/memory.limit_in_bytes
+    return
+  fi
+
+  if [ -r /sys/fs/cgroup/memory.max ]; then
+    cat /sys/fs/cgroup/memory.max
+    return
+  fi
+}
+
 ###################################
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
 ############# MAIN ################
@@ -92,11 +104,12 @@ function _kill() {
 # Check whether container has enough memory
 # Github issue #219: Prevent integer overflow,
 # only check if memory digits are less than 11 (single GB range and below) 
-if [ `cat /sys/fs/cgroup/memory/memory.limit_in_bytes | wc -c` -lt 11 ]; then
-  if [ `cat /sys/fs/cgroup/memory/memory.limit_in_bytes` -lt 2147483648 ]; then
+memoryLimit="$(containerMemoryLimit)"
+if [ -n "$memoryLimit" ] && [ "$memoryLimit" != "max" ] && [ "$(printf '%s' "$memoryLimit" | wc -c)" -lt 11 ]; then
+  if [ "$memoryLimit" -lt 2147483648 ]; then
     echo "Error: The container doesn't have enough memory allocated."
     echo "A database container needs at least 2 GB of memory."
-    echo "You currently only have $((`cat /sys/fs/cgroup/memory/memory.limit_in_bytes`/1024/1024/1024)) GB allocated to the container."
+    echo "You currently only have $((memoryLimit/1024/1024/1024)) GB allocated to the container."
     exit 1;
   fi;
 fi;
@@ -133,6 +146,11 @@ else
  
   mkdir -p ${ORACLE_BASE}/oradata
   chown oracle.oinstall ${ORACLE_BASE}/oradata
+  if [ -z "${_JAVA_OPTIONS:-}" ]; then
+    export _JAVA_OPTIONS="-Xint"
+  else
+    export _JAVA_OPTIONS="${_JAVA_OPTIONS} -Xint"
+  fi
 
   ${ORACLE_CMD} configure
 
