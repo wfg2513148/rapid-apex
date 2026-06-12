@@ -183,6 +183,53 @@ fi
 grep -q '"status": "passed"' "$fake_existing_e2e_dir/e2e-summary.json"
 rm -rf "$fake_existing_e2e_dir"
 
+fake_official_bin="$(mktemp -d)"
+fake_official_root="$(mktemp -d)"
+official_docker_capture="$(mktemp)"
+cat >"$fake_official_bin/docker" <<'FAKE_OFFICIAL_DOCKER'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+  container)
+    [[ "${2:-}" == "inspect" ]] && exit 1
+    ;;
+  network)
+    [[ "${2:-}" == "inspect" ]] && exit 1
+    [[ "${2:-}" == "create" ]] && exit 0
+    ;;
+  run)
+    printf '%s\n' "$*" >>"${RAPID_APEX_OFFICIAL_DOCKER_CAPTURE:?}"
+    exit 0
+    ;;
+esac
+exit 0
+FAKE_OFFICIAL_DOCKER
+chmod +x "$fake_official_bin/docker"
+PATH="$fake_official_bin:$PATH" \
+  RAPID_APEX_OFFICIAL_DOCKER_CAPTURE="$official_docker_capture" \
+  bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh';
+    rapid_apex_pull_image_if_needed() { :; };
+    rapid_apex_wait_for_health() { :; };
+    rapid_apex_prepare_apex_home() { mkdir -p \"\$1/apex\"; printf '%s\n' \"\$1/apex\"; };
+    rapid_apex_install_apex_in_db_container() { :; };
+    rapid_apex_wait_for_http() { :; };
+    rapid_apex_default_config;
+    RAPID_APEX_ROOT_DIR='$fake_official_root';
+    rapid_apex_parse_options --db 26ai --apex 26.1 --ords 26 --name strong-password-lab;
+    rapid_apex_install_official_db_ords"
+grep -q -- "-e ORACLE_PWD=RapidApex1" "$official_docker_capture"
+grep -q -- "-e ORACLE_USER_PWD=RapidApex1" "$official_docker_capture"
+grep -q 'CONN_STRING="sys/RapidApex1@strong-password-lab_db:1521/FREEPDB1"' \
+  "$fake_official_root/.rapid-apex/labs/strong-password-lab/variables/conn_string.txt"
+if grep -Eq "ORACLE_PWD=oracle|ORACLE_USER_PWD=oracle|sys/oracle" \
+  "$official_docker_capture" \
+  "$fake_official_root/.rapid-apex/labs/strong-password-lab/variables/conn_string.txt"; then
+  echo "official Database/ORDS flow must not use the weak oracle admin password" >&2
+  exit 1
+fi
+rm -rf "$fake_official_bin" "$fake_official_root"
+rm -f "$official_docker_capture"
+
 fake_failed_e2e_dir="$(mktemp -d)"
 if bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh';
   rapid_apex_cmd_preflight() { return 2; };
@@ -514,7 +561,7 @@ PATH="$fake_proxy_bin:$PATH" \
   RAPID_APEX_PROXY_ARGS_CAPTURE="$proxy_args_capture" \
   RAPID_APEX_PROXY_SQL_CAPTURE="$proxy_sql_capture" \
   bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_default_config; rapid_apex_parse_options --db 19c --apex 23.1 --ords 24 --license-policy byol --name proxy-lab; rapid_apex_grant_runtime_proxy_users"
-grep -q "sys/oracle@localhost:1521/ORCLPDB1 as sysdba" "$proxy_args_capture"
+grep -q "sys/RapidApex1@localhost:1521/ORCLPDB1 as sysdba" "$proxy_args_capture"
 grep -q "ORDS_PUBLIC_USER" "$proxy_sql_capture"
 rm -f "$proxy_args_capture" "$proxy_sql_capture"
 

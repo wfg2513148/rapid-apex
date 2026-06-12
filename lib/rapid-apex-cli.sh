@@ -432,6 +432,10 @@ rapid_apex_db_service_name() {
   esac
 }
 
+rapid_apex_db_admin_password() {
+  printf '%s\n' RapidApex1
+}
+
 rapid_apex_apex_schema_name() {
   local major minor
 
@@ -670,8 +674,10 @@ rapid_apex_install_official_db_ords() {
   local ords_container="${RAPID_APEX_NAME}_ords"
   local db_service
   local apex_home
+  local db_admin_password
 
   db_service="$(rapid_apex_db_service_name)"
+  db_admin_password="$(rapid_apex_db_admin_password)"
   rapid_apex_require_docker
 
   if docker container inspect "$db_container" >/dev/null 2>&1 || docker container inspect "$ords_container" >/dev/null 2>&1; then
@@ -694,7 +700,7 @@ rapid_apex_install_official_db_ords() {
     --network "${RAPID_APEX_NAME}_network" \
     -p "${RAPID_APEX_DB_PORT}:1521" \
     -p "${RAPID_APEX_EM_PORT}:5500" \
-    -e ORACLE_PWD=oracle \
+    -e ORACLE_PWD="$db_admin_password" \
     -v "$lab_dir:/rapid-apex-lab" \
     -v "$RAPID_APEX_ROOT_DIR/docker-xe/scripts/apex-install-demo-workspace.sql:/rapid-apex-lab/apex-install-demo-workspace.sql:ro" \
     -v "$lab_dir/db:/opt/oracle/oradata" \
@@ -702,7 +708,7 @@ rapid_apex_install_official_db_ords() {
 
   rapid_apex_wait_for_health "$db_container" 2400
   apex_home="$(rapid_apex_prepare_apex_home "$lab_dir")" || return "$?"
-  printf 'CONN_STRING="%s"\n' "sys/oracle@${db_container}:1521/${db_service}" >"$lab_dir/variables/conn_string.txt"
+  printf 'CONN_STRING="%s"\n' "sys/${db_admin_password}@${db_container}:1521/${db_service}" >"$lab_dir/variables/conn_string.txt"
   chmod 644 "$lab_dir/variables/conn_string.txt"
 
   if [[ "$(rapid_apex_ords_major "$RAPID_APEX_ORDS_VERSION")" -ge 24 ]]; then
@@ -716,7 +722,7 @@ rapid_apex_install_official_db_ords() {
       -e DBHOST="$db_container" \
       -e DBPORT=1521 \
       -e DBSERVICENAME="$db_service" \
-      -e ORACLE_USER_PWD=oracle \
+      -e ORACLE_USER_PWD="$db_admin_password" \
       -e APEX_VER="${RAPID_APEX_APEX_VERSION}.0" \
       -v "$lab_dir/ords-config:/etc/ords/config" \
       -v "$apex_home:/opt/oracle/apex/${RAPID_APEX_APEX_VERSION}.0:ro" \
@@ -735,9 +741,9 @@ rapid_apex_install_official_db_ords() {
     -e DBHOST="$db_container" \
     -e DBPORT=1521 \
     -e DBSERVICENAME="$db_service" \
-    -e ORACLE_PWD=oracle \
-    -e ORACLE_USER_PWD=oracle \
-    -e APEX_PWD=oracle \
+    -e ORACLE_PWD="$db_admin_password" \
+    -e ORACLE_USER_PWD="$db_admin_password" \
+    -e APEX_PWD="$db_admin_password" \
     -e APEX_VER="${RAPID_APEX_APEX_VERSION}.0" \
     -e DEMO_WORKSPACE_NAME=demo \
     -e DEMO_WORKSPACE_USER=demo \
@@ -757,24 +763,26 @@ rapid_apex_install_apex_in_db_container() {
   local db_service="$2"
   local apex_schema
   local sqlplus_cmd
+  local db_admin_password
 
   apex_schema="$(rapid_apex_apex_schema_name)"
-  sqlplus_cmd='SQLPLUS_BIN="$(command -v sqlplus || true)"; if [ -z "$SQLPLUS_BIN" ]; then SQLPLUS_BIN="$ORACLE_HOME/bin/sqlplus"; fi; cd /rapid-apex-lab/apex && "$SQLPLUS_BIN" -S "sys/oracle@localhost:1521/'"$db_service"' as sysdba"'
-  docker exec -i "$db_container" bash -lc "$sqlplus_cmd" <<'SQL'
+  db_admin_password="$(rapid_apex_db_admin_password)"
+  sqlplus_cmd='SQLPLUS_BIN="$(command -v sqlplus || true)"; if [ -z "$SQLPLUS_BIN" ]; then SQLPLUS_BIN="$ORACLE_HOME/bin/sqlplus"; fi; cd /rapid-apex-lab/apex && "$SQLPLUS_BIN" -S "sys/'"$db_admin_password"'@localhost:1521/'"$db_service"' as sysdba"'
+  docker exec -i "$db_container" bash -lc "$sqlplus_cmd" <<SQL
 whenever sqlerror exit failure
 @apexins.sql SYSAUX SYSAUX TEMP /i/
-@apex_rest_config_core.sql /rapid-apex-lab/apex/ oracle oracle
+@apex_rest_config_core.sql /rapid-apex-lab/apex/ ${db_admin_password} ${db_admin_password}
 alter profile default limit password_life_time UNLIMITED;
 alter user APEX_PUBLIC_USER account unlock;
-alter user APEX_PUBLIC_USER identified by oracle;
+alter user APEX_PUBLIC_USER identified by ${db_admin_password};
 alter user APEX_LISTENER account unlock;
-alter user APEX_LISTENER identified by oracle;
+alter user APEX_LISTENER identified by ${db_admin_password};
 alter user APEX_REST_PUBLIC_USER account unlock;
-alter user APEX_REST_PUBLIC_USER identified by oracle;
+alter user APEX_REST_PUBLIC_USER identified by ${db_admin_password};
 exit
 SQL
 
-  sqlplus_cmd='SQLPLUS_BIN="$(command -v sqlplus || true)"; if [ -z "$SQLPLUS_BIN" ]; then SQLPLUS_BIN="$ORACLE_HOME/bin/sqlplus"; fi; cd /rapid-apex-lab/apex/core && "$SQLPLUS_BIN" -S "sys/oracle@localhost:1521/'"$db_service"' as sysdba"'
+  sqlplus_cmd='SQLPLUS_BIN="$(command -v sqlplus || true)"; if [ -z "$SQLPLUS_BIN" ]; then SQLPLUS_BIN="$ORACLE_HOME/bin/sqlplus"; fi; cd /rapid-apex-lab/apex/core && "$SQLPLUS_BIN" -S "sys/'"$db_admin_password"'@localhost:1521/'"$db_service"' as sysdba"'
   docker exec -i "$db_container" bash -lc "$sqlplus_cmd" <<SQL
 whenever sqlerror exit failure
 set define off
@@ -821,7 +829,7 @@ exec validate_apex;
 exit
 SQL
 
-  sqlplus_cmd='SQLPLUS_BIN="$(command -v sqlplus || true)"; if [ -z "$SQLPLUS_BIN" ]; then SQLPLUS_BIN="$ORACLE_HOME/bin/sqlplus"; fi; "$SQLPLUS_BIN" -S "sys/oracle@localhost:1521/'"$db_service"' as sysdba"'
+  sqlplus_cmd='SQLPLUS_BIN="$(command -v sqlplus || true)"; if [ -z "$SQLPLUS_BIN" ]; then SQLPLUS_BIN="$ORACLE_HOME/bin/sqlplus"; fi; "$SQLPLUS_BIN" -S "sys/'"$db_admin_password"'@localhost:1521/'"$db_service"' as sysdba"'
   docker exec -i "$db_container" bash -lc "$sqlplus_cmd" <<'SQL'
 whenever sqlerror exit failure
 @/rapid-apex-lab/apex-install-demo-workspace.sql demo demo demo
@@ -1510,6 +1518,7 @@ rapid_apex_grant_runtime_proxy_users() {
   local db_service
   local ords_family
   local sqlplus_conn
+  local db_admin_password
 
   db_family="$(rapid_apex_db_family "$RAPID_APEX_DB_VERSION")"
   ords_family="$(rapid_apex_ords_install_family "$RAPID_APEX_ORDS_VERSION")"
@@ -1521,7 +1530,8 @@ rapid_apex_grant_runtime_proxy_users() {
        [[ "$db_family" == "oracle-free-container" ]] || [[ "$db_family" == "oracle-enterprise-ru-container" ]]
      }; then
     db_service="$(rapid_apex_db_service_name)"
-    sqlplus_conn="sys/oracle@localhost:1521/${db_service} as sysdba"
+    db_admin_password="$(rapid_apex_db_admin_password)"
+    sqlplus_conn="sys/${db_admin_password}@localhost:1521/${db_service} as sysdba"
   else
     return 0
   fi
