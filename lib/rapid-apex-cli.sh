@@ -441,14 +441,31 @@ rapid_apex_apex_schema_name() {
   printf 'APEX_%02d%02d00\n' "$major" "$minor"
 }
 
+rapid_apex_utc_timestamp() {
+  date -u '+%Y-%m-%dT%H:%M:%SZ'
+}
+
+rapid_apex_print_container_progress_logs() {
+  local container="$1"
+  local since="$2"
+  local logs
+
+  logs="$(docker logs --since "$since" "$container" 2>&1 || true)"
+  if [[ -n "$logs" ]]; then
+    printf 'Recent logs from %s:\n%s\n' "$container" "$logs"
+  fi
+}
+
 rapid_apex_wait_for_health() {
   local container="$1"
   local timeout_seconds="${2:-1800}"
   local start_epoch
+  local log_since
   local state
   local status
 
   start_epoch="$(date +%s)"
+  log_since="$(rapid_apex_utc_timestamp)"
   while :; do
     state="$(docker inspect --format '{{.State.Status}}' "$container" 2>/dev/null || true)"
     status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$container" 2>/dev/null || true)"
@@ -477,6 +494,8 @@ rapid_apex_wait_for_health() {
       return 1
     fi
     printf 'Waiting for container health: %s (%s/%s)\n' "$container" "${state:-unknown}" "${status:-unknown}"
+    rapid_apex_print_container_progress_logs "$container" "$log_since"
+    log_since="$(rapid_apex_utc_timestamp)"
     sleep 15
   done
 }

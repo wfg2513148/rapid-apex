@@ -9,10 +9,10 @@ open-source toolkit for reproducible Oracle APEX developer environments.
   preflight, install, status, logs, smoke, browser-smoke, e2e, destroy,
   recover, and profile generation workflows.
 - Added a version catalog for Database 18c, 19c, 26ai, and 26ai-ee; APEX
-  5.0.4 through 26.1; and ORDS 3.0.12 through 26.x.
+  5.0.4 through 26.1; and ORDS 21.x through 26.x.
 - Added demo-policy license validation for XE/Free editions and explicit BYOL
   policy requirements for Enterprise Edition profiles.
-- Added representative real-install validation for 13 profiles across legacy
+- Added representative real-install validation for 9 profiles across legacy
   18c XE, 19c Enterprise BYOL, 26ai Free, and 26ai Enterprise BYOL.
 - Added CI checks for shell syntax, version matrix tests, CLI tests,
   ShellCheck, and Dockerfile linting.
@@ -30,9 +30,9 @@ open-source toolkit for reproducible Oracle APEX developer environments.
 
 ## Future Work
 
-- Validate additional catalog combinations that are not covered by the 13
+- Validate additional catalog combinations that are not covered by the 9
   representative profiles.
-- Add more troubleshooting recipes for Oracle Registry access, media mirrors,
+- Add more troubleshooting recipes for Oracle Registry access,
   disk pressure, and host Docker setup.
 - Continue hardening legacy scripts where they affect supported profile flows,
   without rewriting the historical XE 18c path wholesale.

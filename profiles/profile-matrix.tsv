@@ -1,0 +1,10 @@
+profile	db	apex	ords	license	name	db_port	em_port	ords_port
+profiles/18c-apex212-ords21.env	18c	21.2	21	demo	apex212-xe18c-lab	31531	35511	32521
+profiles/19c-apex221-ords23.env	19c	22.1	23	byol	apex221-19c-lab	31541	35521	32531
+profiles/19c-apex231-ords24.env	19c	23.1	24	byol	apex231-19c-lab	31533	35513	32523
+profiles/19c-apex242-ords25.env	19c	24.2	25	byol	apex242-19c-lab	31523	35502	32515
+profiles/26ai-apex222-ords22.env	26ai	22.2	22	demo	apex222-26ai-lab	31540	35520	32530
+profiles/26ai-apex232-ords23.env	26ai	23.2	23	demo	apex232-26ai-lab	31532	35512	32522
+profiles/26ai-apex241-ords24.env	26ai	24.1	24	demo	apex241-26ai-lab	31534	35514	32524
+profiles/26ai-apex261-ords26.env	26ai	26.1	26	demo	apex261-26ai-lab	31522	35501	32514
+profiles/26ai-ee-apex261-ords26.env	26ai-ee	26.1	26	byol	apex261-26ai-ee-lab	31525	35504	32517

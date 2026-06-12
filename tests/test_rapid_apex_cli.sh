@@ -595,8 +595,52 @@ if grep -q "awk: syntax error\\|0.0 GiB" <<<"$disk_output"; then
   exit 1
 fi
 
+fake_health_bin="$(mktemp -d)"
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin" "$fake_proxy_bin" "$fake_port_bin" "$fake_status_bin" "$fake_disk_bin" "$fake_health_bin"' EXIT
+health_count_file="$(mktemp)"
+printf '0' >"$health_count_file"
+cat >"$fake_health_bin/docker" <<'FAKE_HEALTH_DOCKER'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+  inspect)
+    format="${3:-}"
+    if [[ "$format" == *".State.Status"* ]]; then
+      printf 'running\n'
+      exit 0
+    fi
+    if [[ "$format" == *".State.Health.Status"* ]]; then
+      count="$(cat "${RAPID_APEX_HEALTH_COUNT_FILE:?}")"
+      count=$((count + 1))
+      printf '%s' "$count" >"${RAPID_APEX_HEALTH_COUNT_FILE:?}"
+      if (( count >= 3 )); then
+        printf 'healthy\n'
+      else
+        printf 'starting\n'
+      fi
+      exit 0
+    fi
+    ;;
+  logs)
+    printf 'DBCA progress: 7%% complete\n'
+    exit 0
+    ;;
+esac
+exit 1
+FAKE_HEALTH_DOCKER
+cat >"$fake_health_bin/sleep" <<'FAKE_HEALTH_SLEEP'
+#!/usr/bin/env bash
+exit 0
+FAKE_HEALTH_SLEEP
+chmod +x "$fake_health_bin/docker" "$fake_health_bin/sleep"
+health_output="$(PATH="$fake_health_bin:$PATH" RAPID_APEX_HEALTH_COUNT_FILE="$health_count_file" bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_wait_for_health fake-db 60" 2>&1)"
+grep -q "Waiting for container health: fake-db (running/starting)" <<<"$health_output"
+grep -q "DBCA progress: 7% complete" <<<"$health_output"
+grep -q "Container is healthy: fake-db" <<<"$health_output"
+rm -f "$health_count_file"
+
 fake_recover_bin="$(mktemp -d)"
-trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin" "$fake_proxy_bin" "$fake_port_bin" "$fake_disk_bin" "$fake_recover_bin"' EXIT
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin" "$fake_proxy_bin" "$fake_port_bin" "$fake_status_bin" "$fake_disk_bin" "$fake_health_bin" "$fake_recover_bin"' EXIT
 recover_capture="$(mktemp)"
 cat >"$fake_recover_bin/docker" <<'FAKE_RECOVER_DOCKER'
 #!/usr/bin/env bash

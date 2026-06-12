@@ -29,6 +29,9 @@ jobs:
       - name: Validate CLI
         run: bash tests/test_rapid_apex_cli.sh
 
+      - name: Validate profile matrix
+        run: bash tests/test_profile_matrix.sh
+
       - name: Validate documentation install workflow
         run: bash tests/test_docs_install_workflow.sh
 
@@ -50,6 +53,7 @@ jobs:
             tools/version-matrix.sh \
             tests/test_version_matrix.sh \
             tests/test_rapid_apex_cli.sh \
+            tests/test_profile_matrix.sh \
             tests/test_docs_install_workflow.sh
 
   dockerfile-lint:
