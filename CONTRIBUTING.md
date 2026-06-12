@@ -39,6 +39,7 @@ bash -n docker-xe/scripts/*.sh
 bash -n docker-ords/scripts/*.sh
 bash tests/test_version_matrix.sh
 bash tests/test_rapid_apex_cli.sh
+bash tests/test_docs_install_workflow.sh
 ```
 
 If available locally, also run:

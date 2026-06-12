@@ -29,6 +29,9 @@ jobs:
       - name: Validate CLI
         run: bash tests/test_rapid_apex_cli.sh
 
+      - name: Validate documentation install workflow
+        run: bash tests/test_docs_install_workflow.sh
+
   shellcheck:
     name: ShellCheck modern scripts
     runs-on: ubuntu-latest
@@ -46,7 +49,8 @@ jobs:
             lib/rapid-apex-cli.sh \
             tools/version-matrix.sh \
             tests/test_version_matrix.sh \
-            tests/test_rapid_apex_cli.sh
+            tests/test_rapid_apex_cli.sh \
+            tests/test_docs_install_workflow.sh
 
   dockerfile-lint:
     name: Dockerfile lint

@@ -248,6 +248,102 @@ grep -q "Database official image is not reachable: container-registry.oracle.com
 grep -q "accept the required BYOL image terms" /tmp/rapid-apex-19c-auth.out
 rm -f /tmp/rapid-apex-19c-auth.out
 
+fake_install_docker_bin="$(mktemp -d)"
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_install_docker_bin"' EXIT
+install_capture="$(mktemp)"
+cat >"$fake_install_docker_bin/apt-get" <<'FAKE_APT_GET'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'apt-get %s\n' "$*" >>"${RAPID_APEX_INSTALL_CAPTURE:?}"
+if [[ " $* " == *" install "* ]]; then
+  cat >"${RAPID_APEX_FAKE_DOCKER_DIR:?}/docker" <<'FAKE_INSTALLED_DOCKER'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+  info) exit 0 ;;
+  ps) exit 0 ;;
+esac
+exit 0
+FAKE_INSTALLED_DOCKER
+  chmod +x "${RAPID_APEX_FAKE_DOCKER_DIR:?}/docker"
+fi
+FAKE_APT_GET
+chmod +x "$fake_install_docker_bin/apt-get"
+cat >"$fake_install_docker_bin/sudo" <<'FAKE_SUDO'
+#!/usr/bin/env bash
+set -euo pipefail
+exec "$@"
+FAKE_SUDO
+chmod +x "$fake_install_docker_bin/sudo"
+PATH="$fake_install_docker_bin:/usr/bin:/bin" \
+  RAPID_APEX_INSTALL_CAPTURE="$install_capture" \
+  RAPID_APEX_FAKE_DOCKER_DIR="$fake_install_docker_bin" \
+  bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_require_docker"
+grep -q "apt-get update" "$install_capture"
+grep -q "apt-get install -y docker.io" "$install_capture"
+rm -f "$install_capture"
+
+fake_start_docker_bin="$(mktemp -d)"
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_install_docker_bin" "$fake_start_docker_bin"' EXIT
+start_capture="$(mktemp)"
+docker_started_marker="$(mktemp)"
+rm -f "$docker_started_marker"
+cat >"$fake_start_docker_bin/docker" <<'FAKE_START_DOCKER'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+  info)
+    [[ -f "${RAPID_APEX_DOCKER_STARTED_MARKER:?}" ]]
+    ;;
+  ps) exit 0 ;;
+esac
+FAKE_START_DOCKER
+chmod +x "$fake_start_docker_bin/docker"
+cat >"$fake_start_docker_bin/systemctl" <<'FAKE_SYSTEMCTL'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'systemctl %s\n' "$*" >>"${RAPID_APEX_START_CAPTURE:?}"
+touch "${RAPID_APEX_DOCKER_STARTED_MARKER:?}"
+FAKE_SYSTEMCTL
+chmod +x "$fake_start_docker_bin/systemctl"
+cat >"$fake_start_docker_bin/sudo" <<'FAKE_SUDO'
+#!/usr/bin/env bash
+set -euo pipefail
+exec "$@"
+FAKE_SUDO
+chmod +x "$fake_start_docker_bin/sudo"
+PATH="$fake_start_docker_bin:/usr/bin:/bin" \
+  RAPID_APEX_START_CAPTURE="$start_capture" \
+  RAPID_APEX_DOCKER_STARTED_MARKER="$docker_started_marker" \
+  bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_require_docker"
+grep -q "systemctl enable --now docker" "$start_capture"
+rm -f "$start_capture" "$docker_started_marker"
+
+fake_required_tool_bin="$(mktemp -d)"
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_install_docker_bin" "$fake_start_docker_bin" "$fake_required_tool_bin"' EXIT
+required_tool_capture="$(mktemp)"
+cat >"$fake_required_tool_bin/apt-get" <<'FAKE_REQUIRED_APT_GET'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'apt-get %s\n' "$*" >>"${RAPID_APEX_REQUIRED_TOOL_CAPTURE:?}"
+if [[ " $* " == *" install "* ]]; then
+  cat >"${RAPID_APEX_FAKE_TOOL_DIR:?}/${RAPID_APEX_FAKE_TOOL_NAME:?}" <<'FAKE_REQUIRED_TOOL'
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
+FAKE_REQUIRED_TOOL
+  chmod +x "${RAPID_APEX_FAKE_TOOL_DIR:?}/${RAPID_APEX_FAKE_TOOL_NAME:?}"
+fi
+FAKE_REQUIRED_APT_GET
+chmod +x "$fake_required_tool_bin/apt-get"
+RAPID_APEX_REQUIRED_TOOL_CAPTURE="$required_tool_capture" \
+  RAPID_APEX_FAKE_TOOL_DIR="$fake_required_tool_bin" \
+  RAPID_APEX_FAKE_TOOL_NAME="curl" \
+  /bin/bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; PATH='$fake_required_tool_bin:/bin'; rapid_apex_require_command curl curl"
+grep -q "apt-get update" "$required_tool_capture"
+grep -q "apt-get install -y curl" "$required_tool_capture"
+rm -f "$required_tool_capture"
+
 fake_local_image_bin="$(mktemp -d)"
 trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin"' EXIT
 cat >"$fake_local_image_bin/docker" <<'FAKE_LOCAL_DOCKER'

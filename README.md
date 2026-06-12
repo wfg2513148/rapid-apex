@@ -15,20 +15,22 @@ The fastest supported path is the CLI e2e command. It provisions the lab,
 checks the result, and writes validation evidence:
 
 ```bash
-git clone https://github.com/wfg2513148/rapid-apex.git
-cd rapid-apex
+mkdir -p rapid-apex-bootstrap
+cd rapid-apex-bootstrap
+curl -fsSL https://codeload.github.com/wfg2513148/rapid-apex/tar.gz/refs/heads/master | tar -xz --strip-components=1
 bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
 ```
 
-If you already cloned the repository, run only:
+If you already downloaded the repository, run only:
 
 ```bash
 bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
 ```
 
 This profile installs an Oracle Database 26ai Free, Oracle APEX 26.1, and ORDS
-26.x lab. The `e2e` command runs preflight checks, installation, container
-status checks, HTTP smoke validation, browser validation, and an evidence
+26.x lab. The `e2e` command runs preflight checks, automatically tries to
+install or start Docker when needed, installs the lab, checks container status,
+runs HTTP smoke validation and browser validation, and writes an evidence
 summary under `.rapid-apex/evidence/<lab-name>/`.
 
 Add `--destroy-after` only when the lab should be stopped after validation. Add
@@ -111,7 +113,7 @@ flowchart TD
   C --> D["plan or install --dry-run"]
   D --> E["preflight"]
   E --> F{"Preflight passed?"}
-  F -- "No" --> G["Fix Docker, registry, disk, media, or port issue"]
+  F -- "No" --> G["Auto-install/start Docker or fix registry, disk, media, or port issue"]
   G --> E
   F -- "Yes" --> H["install"]
   H --> I["status/logs"]
@@ -217,7 +219,13 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 
 ## Host Prerequisites
 
-- Docker CLI and a reachable Docker daemon are required.
+- The bootstrap example uses `curl` and `tar` to download the repository
+  archive; Git is not required for installation.
+- Docker is required at runtime. During CLI execution, Rapid-APEX automatically
+  attempts to install required tools such as Docker, `curl`, and `unzip` with
+  `apt-get`, `dnf`, `yum`, or Homebrew when they are available. It also attempts
+  to start the Docker daemon. If automatic setup is not possible, the CLI
+  reports the unsupported step before any long-running install work.
 - Official Database/ORDS profiles need enough local disk for Oracle images,
   installation media, generated lab data, Playwright, and evidence files. The
   CLI preflight checks for at least 10 GiB free for modern official-image
@@ -236,7 +244,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 
 | Symptom | What to check | Next action |
 | --- | --- | --- |
-| `Docker daemon is not reachable` | Docker Desktop, Colima, or the target Docker service is stopped. | Start Docker, then rerun `bin/rapid-apex preflight --profile <profile>`. |
+| Automatic tool setup cannot be completed | The host does not expose a supported package manager/service starter, or the current user cannot install/start required tools such as Docker. | Install or start the reported tool with host-appropriate privileges, then rerun `bin/rapid-apex preflight --profile <profile>`. |
 | Enterprise image is not reachable | Oracle Registry login or BYOL terms acceptance is missing. | Run `docker login container-registry.oracle.com`, accept the required image terms, then rerun preflight. |
 | ORDS image is not reachable | The pinned ORDS tag may not exist in the registry for that major version. | Use `--ords-image-tag TAG` with an Oracle-published tag and rerun preflight. |
 | Media download fails | Network access or the configured media mirror is unavailable. | Retry after checking connectivity, or use `--media-base URL` for a reachable mirror. Downloads retry automatically before failing. |
@@ -252,7 +260,8 @@ The current installation workflow is repository-local:
 1. Select a supported Database/APEX/ORDS combination.
 2. Generate or reuse a profile file under `profiles/`.
 3. Validate the profile.
-4. Run preflight checks for Docker, image access, disk space, and ports.
+4. Run preflight checks for Docker, image access, disk space, and ports. Docker
+   setup is attempted automatically when the host supports it.
 5. Install the lab.
 6. Run smoke or e2e validation.
 
@@ -310,8 +319,9 @@ bin/rapid-apex preflight --profile profiles/my-26ai-lab.env
 ```
 
 Preflight checks Docker availability, selected image access, disk space for
-official-image profiles, and host port availability. Resolve any preflight
-failure before starting installation.
+official-image profiles, and host port availability. It automatically tries to
+install or start Docker when the host supports it. Resolve any remaining
+preflight failure before starting installation.
 
 ### Install the APEX Lab
 

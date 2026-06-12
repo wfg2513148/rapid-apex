@@ -9,18 +9,19 @@
 最快的工作链路是直接运行 CLI 的 `e2e` 命令。它会完成安装部署、状态检查、HTTP smoke、浏览器验证，并输出验证证据：
 
 ```bash
-git clone https://github.com/wfg2513148/rapid-apex.git
-cd rapid-apex
+mkdir -p rapid-apex-bootstrap
+cd rapid-apex-bootstrap
+curl -fsSL https://codeload.github.com/wfg2513148/rapid-apex/tar.gz/refs/heads/master | tar -xz --strip-components=1
 bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
 ```
 
-如果已经克隆了仓库，只需要执行：
+如果已经下载了仓库，只需要执行：
 
 ```bash
 bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
 ```
 
-这个 profile 会部署 Oracle Database 26ai Free、Oracle APEX 26.1 和 ORDS 26.x。验证证据默认写入 `.rapid-apex/evidence/<lab-name>/`，其中包含截图路径、端口、镜像、最终访问地址和运行结果摘要。
+这个 profile 会部署 Oracle Database 26ai Free、Oracle APEX 26.1 和 ORDS 26.x。`e2e` 会在需要时自动尝试安装或启动 Docker，然后执行安装、状态检查、HTTP smoke、浏览器验证，并把验证证据写入 `.rapid-apex/evidence/<lab-name>/`。
 
 只有需要在验证后停止环境时才加 `--destroy-after`；如果还要删除生成的数据目录，再加 `--purge-data`。
 
@@ -73,7 +74,7 @@ flowchart TD
   C --> D["plan 或 install --dry-run 查看计划"]
   D --> E["preflight 检查 Docker、镜像、磁盘和端口"]
   E --> F{"preflight 通过?"}
-  F -- "否" --> G["修复 Docker、Registry、磁盘、介质或端口问题"]
+  F -- "否" --> G["自动安装/启动 Docker，或修复 Registry、磁盘、介质、端口问题"]
   G --> E
   F -- "是" --> H["install 安装环境"]
   H --> I["status/logs 查看运行状态"]
@@ -164,7 +165,8 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 
 # 主机前置条件
 
-- 需要 Docker CLI，并且 Docker daemon 必须可访问。
+- 首屏安装示例使用 `curl` 和 `tar` 下载仓库归档；安装部署不要求用户预先安装 Git。
+- 运行环境需要 Docker。CLI 执行过程中会在可行时自动通过 `apt-get`、`dnf`、`yum` 或 Homebrew 安装 Docker、`curl`、`unzip` 等必需工具，并尝试启动 Docker daemon；如果当前主机不支持自动处理，会在耗时安装开始前给出明确失败原因。
 - 官方 Database/ORDS 镜像 profile 需要足够本地磁盘空间存放 Oracle 镜像、安装介质、生成的 lab 数据、Playwright 和证据文件。现代官方镜像 profile 的 preflight 会检查至少 10 GiB 可用空间。
 - Enterprise Edition profile 需要用户自行具备有效 Oracle BYOL 权利，并完成 Oracle Container Registry 登录和镜像条款确认。
 - 浏览器 e2e 验证需要 Node.js 和 npm，CLI 会在 `.rapid-apex/playwright/` 下安装并运行 Playwright Chromium。
@@ -175,7 +177,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 
 | 现象 | 检查点 | 下一步 |
 | --- | --- | --- |
-| `Docker daemon is not reachable` | Docker Desktop、Colima 或目标 Docker 服务未启动。 | 启动 Docker 后重跑 `bin/rapid-apex preflight --profile <profile>`。 |
+| 必需工具自动配置失败 | 当前主机没有支持的包管理器/服务启动器，或当前用户没有安装、启动 Docker 等必需工具的权限。 | 按主机环境安装或启动提示中的工具，然后重跑 `bin/rapid-apex preflight --profile <profile>`。 |
 | Enterprise 镜像不可访问 | 缺少 Oracle Registry 登录或 BYOL 镜像条款确认。 | 执行 `docker login container-registry.oracle.com`，确认所需镜像条款后重跑 preflight。 |
 | ORDS 镜像不可访问 | 当前固定 ORDS tag 可能不存在。 | 使用 Oracle 已发布的 tag 通过 `--ords-image-tag TAG` 覆盖后重跑 preflight。 |
 | 安装介质下载失败 | 网络或配置的 media mirror 不可访问。 | 检查网络后重试，或使用 `--media-base URL` 指向可访问镜像；下载失败会自动重试。 |
@@ -192,7 +194,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 1. 选择支持的 Database/APEX/ORDS 版本组合。
 2. 生成或复用 `profiles/` 下的 profile 文件。
 3. 校验 profile。
-4. 执行 preflight，检查 Docker、镜像访问、磁盘空间和端口。
+4. 执行 preflight，检查 Docker、镜像访问、磁盘空间和端口；如果主机支持，会自动尝试安装或启动 Docker。
 5. 安装 lab。
 6. 执行 smoke 或 e2e 验证。
 
@@ -245,7 +247,7 @@ bin/rapid-apex install --dry-run --profile profiles/my-26ai-lab.env
 bin/rapid-apex preflight --profile profiles/my-26ai-lab.env
 ```
 
-preflight 会检查 Docker 可用性、镜像访问、官方镜像 profile 所需磁盘空间，以及主机端口占用。preflight 失败时应先修复对应问题，再开始安装。
+preflight 会检查 Docker 可用性、镜像访问、官方镜像 profile 所需磁盘空间，以及主机端口占用。Docker 缺失或未启动时，CLI 会优先自动安装或启动；仍失败时应先修复对应问题，再开始安装。
 
 ## 安装 APEX 环境
 

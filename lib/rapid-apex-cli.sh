@@ -482,6 +482,7 @@ rapid_apex_download_file() {
   local sleep_seconds="${RAPID_APEX_RETRY_SLEEP_SECONDS:-5}"
   local attempt=1
 
+  rapid_apex_require_command curl curl
   mkdir -p "$(dirname "$target")"
   if [[ -f "$target" ]]; then
     printf 'Media already exists: %s\n' "$target" >&2
@@ -532,6 +533,7 @@ rapid_apex_prepare_apex_home() {
   if [[ ! -f "$apex_home/apxsilentins.sql" ]]; then
     rm -rf "$lab_dir/apex-src" "$apex_home"
     rapid_apex_download_file "$(rapid_apex_apex_download_url)" "$media_file"
+    rapid_apex_require_command unzip unzip
     mkdir -p "$lab_dir/apex-src"
     unzip -oq "$media_file" -d "$lab_dir/apex-src"
     if [[ ! -d "$lab_dir/apex-src/apex" ]]; then
@@ -813,16 +815,121 @@ rapid_apex_wait_for_http() {
   done
 }
 
-rapid_apex_require_docker() {
-  if ! command -v docker >/dev/null 2>&1; then
-    printf 'Docker CLI is not installed or not on PATH.\n' >&2
+rapid_apex_run_privileged() {
+  if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    "$@"
+    return "$?"
+  fi
+
+  if command -v sudo >/dev/null 2>&1; then
+    sudo "$@"
+    return "$?"
+  fi
+
+  "$@"
+}
+
+rapid_apex_install_package() {
+  local package_name="$1"
+
+  if command -v apt-get >/dev/null 2>&1; then
+    rapid_apex_run_privileged apt-get update
+    rapid_apex_run_privileged apt-get install -y "$package_name"
+  elif command -v dnf >/dev/null 2>&1; then
+    rapid_apex_run_privileged dnf install -y "$package_name"
+  elif command -v yum >/dev/null 2>&1; then
+    rapid_apex_run_privileged yum install -y "$package_name"
+  elif command -v brew >/dev/null 2>&1; then
+    brew install "$package_name"
+  else
+    printf 'No supported automatic installer was found for required tool: %s\n' "$package_name" >&2
+    printf 'Supported automatic installers: apt-get, dnf, yum, Homebrew.\n' >&2
+    return 2
+  fi
+}
+
+rapid_apex_require_command() {
+  local command_name="$1"
+  local package_name="${2:-$1}"
+
+  if command -v "$command_name" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  printf '%s is not installed; attempting automatic installation.\n' "$command_name" >&2
+  rapid_apex_install_package "$package_name"
+
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    printf '%s installation finished, but %s is still not on PATH.\n' "$package_name" "$command_name" >&2
+    return 2
+  fi
+}
+
+rapid_apex_install_docker_cli() {
+  if command -v docker >/dev/null 2>&1; then
+    return 0
+  fi
+
+  printf 'Docker CLI is not installed; attempting automatic Docker installation.\n' >&2
+
+  if command -v apt-get >/dev/null 2>&1; then
+    rapid_apex_install_package docker.io
+  elif command -v dnf >/dev/null 2>&1; then
+    rapid_apex_run_privileged dnf install -y docker
+  elif command -v yum >/dev/null 2>&1; then
+    if command -v yum-config-manager >/dev/null 2>&1; then
+      rapid_apex_run_privileged yum install -y yum-utils device-mapper-persistent-data lvm2
+      rapid_apex_run_privileged yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+      rapid_apex_run_privileged yum install -y docker-ce docker-ce-cli containerd.io
+    else
+      rapid_apex_run_privileged yum install -y docker
+    fi
+  elif command -v brew >/dev/null 2>&1; then
+    if ! brew list --cask docker >/dev/null 2>&1; then
+      brew install --cask docker
+    fi
+  else
+    printf 'Docker CLI is required, but no supported automatic installer was found.\n' >&2
+    printf 'Supported automatic installers: apt-get, dnf, yum, Homebrew.\n' >&2
     return 2
   fi
 
-  if ! docker info >/dev/null 2>&1; then
-    printf 'Docker daemon is not reachable. Start Docker Desktop or Colima, then retry.\n' >&2
+  if ! command -v docker >/dev/null 2>&1; then
+    printf 'Docker installation finished, but docker is still not on PATH.\n' >&2
     return 2
   fi
+}
+
+rapid_apex_start_docker_daemon() {
+  if docker info >/dev/null 2>&1; then
+    return 0
+  fi
+
+  printf 'Docker daemon is not reachable; attempting to start Docker.\n' >&2
+
+  if command -v systemctl >/dev/null 2>&1; then
+    rapid_apex_run_privileged systemctl enable --now docker
+  elif command -v service >/dev/null 2>&1; then
+    rapid_apex_run_privileged service docker start
+  elif command -v open >/dev/null 2>&1; then
+    open -a Docker
+  else
+    printf 'Docker is installed, but no supported automatic service starter was found.\n' >&2
+    printf 'Supported automatic starters: systemctl, service, macOS open.\n' >&2
+    return 2
+  fi
+
+  if docker info >/dev/null 2>&1; then
+    return 0
+  fi
+
+  printf 'Docker daemon is still not reachable after the automatic start attempt.\n' >&2
+  return 2
+}
+
+rapid_apex_require_docker() {
+  rapid_apex_install_docker_cli
+  rapid_apex_start_docker_daemon
 }
 
 rapid_apex_port_in_use() {
@@ -995,24 +1102,19 @@ rapid_apex_cmd_preflight() {
   printf 'Database/APEX/ORDS: %s / %s / %s\n' "$RAPID_APEX_DB_VERSION" "$RAPID_APEX_APEX_VERSION" "$RAPID_APEX_ORDS_VERSION"
   printf 'License policy: %s\n\n' "$RAPID_APEX_LICENSE_POLICY"
 
-  if command -v docker >/dev/null 2>&1; then
+  if rapid_apex_require_docker; then
     printf 'PASS Docker CLI is installed\n'
-    if docker info >/dev/null 2>&1; then
-      printf 'PASS Docker daemon is reachable\n'
-      if [[ "$(rapid_apex_db_license_family "$RAPID_APEX_DB_VERSION")" == "byol" ]]; then
-        rapid_apex_check_db_image_access || failed="Y"
-      fi
-      rapid_apex_check_ords_image_access || failed="Y"
-      if [[ "$(rapid_apex_db_family "$RAPID_APEX_DB_VERSION")" != "oracle-express-container" ]] &&
-         [[ "$(rapid_apex_ords_install_family "$RAPID_APEX_ORDS_VERSION")" == "official-oracle-image" ]]; then
-        rapid_apex_check_official_install_disk || failed="Y"
-      fi
-    else
-      printf 'FAIL Docker daemon is not reachable; start Docker Desktop or Colima\n'
-      failed="Y"
+    printf 'PASS Docker daemon is reachable\n'
+    if [[ "$(rapid_apex_db_license_family "$RAPID_APEX_DB_VERSION")" == "byol" ]]; then
+      rapid_apex_check_db_image_access || failed="Y"
+    fi
+    rapid_apex_check_ords_image_access || failed="Y"
+    if [[ "$(rapid_apex_db_family "$RAPID_APEX_DB_VERSION")" != "oracle-express-container" ]] &&
+       [[ "$(rapid_apex_ords_install_family "$RAPID_APEX_ORDS_VERSION")" == "official-oracle-image" ]]; then
+      rapid_apex_check_official_install_disk || failed="Y"
     fi
   else
-    printf 'FAIL Docker CLI is not installed or not on PATH\n'
+    printf 'FAIL Docker is unavailable after automatic setup attempt\n'
     failed="Y"
   fi
 

@@ -153,12 +153,13 @@ also removes generated lab data paths for that lab.
 ### Operational Troubleshooting
 
 Use `preflight` before long-running installs. It checks Docker availability,
-selected image access, free disk for official-image profiles, and host port
-availability.
+tries to install required tools and start Docker automatically on supported
+hosts, checks selected image access, free disk for official-image profiles, and
+host port availability.
 
 | Area | Expected behavior | Recovery path |
 | --- | --- | --- |
-| Docker daemon | `preflight` reports Docker CLI and daemon access. | Start Docker Desktop, Colima, or the target Docker service before rerunning preflight. |
+| Required tool setup | `preflight` attempts to install required tools such as Docker and start the Docker daemon with supported host tooling before reporting failure. | If automatic setup is unsupported or lacks privilege, install or start the reported tool with host-appropriate privileges before rerunning preflight. |
 | BYOL registry access | Enterprise profiles validate the selected Database image locally or through the registry manifest. | Log in to Oracle Container Registry and accept the required image terms. |
 | ORDS image tag | Official ORDS profiles validate the selected pinned tag. | Provide `--ords-image-tag TAG` when Oracle publishes a different patch tag for that ORDS major. |
 | Media downloads | Downloads retry before failing and remove partial files on failure. | Check network access or use `--media-base URL` for a reachable mirror. |
