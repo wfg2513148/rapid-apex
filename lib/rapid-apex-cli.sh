@@ -575,8 +575,28 @@ rapid_apex_check_db_image_access() {
   printf 'FAIL Database official image is not reachable: %s\n' "$image"
   if [[ "$(rapid_apex_db_license_family "$RAPID_APEX_DB_VERSION")" == "byol" ]]; then
     printf '     Log in to Oracle Container Registry and accept the required BYOL image terms, then retry.\n'
+    printf '     Required Oracle Registry setup:\n'
+    printf '       1. Open: https://container-registry.oracle.com/ords/ocr/ba/database/enterprise\n'
+    printf '       2. Sign in with an Oracle account and accept the license terms for database/enterprise.\n'
+    printf '       3. Run: docker login container-registry.oracle.com\n'
+    printf '       4. Run: docker pull %s\n' "$image"
+    printf '       5. Retry: %s\n' "$(rapid_apex_preflight_retry_command)"
   fi
   return 1
+}
+
+rapid_apex_preflight_retry_command() {
+  if [[ -n "$RAPID_APEX_PROFILE" ]]; then
+    printf 'bin/rapid-apex preflight --profile %s\n' "$RAPID_APEX_PROFILE"
+    return 0
+  fi
+
+  printf 'bin/rapid-apex preflight --db %s --apex %s --ords %s --license-policy %s --name %s\n' \
+    "$RAPID_APEX_DB_VERSION" \
+    "$RAPID_APEX_APEX_VERSION" \
+    "$RAPID_APEX_ORDS_VERSION" \
+    "$RAPID_APEX_LICENSE_POLICY" \
+    "$RAPID_APEX_NAME"
 }
 
 rapid_apex_check_ords_image_access() {

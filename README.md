@@ -265,7 +265,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 | Symptom | What to check | Next action |
 | --- | --- | --- |
 | Automatic tool setup cannot be completed | The host does not expose a supported package manager/service starter, or the current user cannot install/start required tools such as Docker. | Install or start the reported tool with host-appropriate privileges, then rerun `bin/rapid-apex preflight --profile <profile>`. |
-| Enterprise image is not reachable | Oracle Registry login or BYOL terms acceptance is missing. | Run `docker login container-registry.oracle.com`, accept the required image terms, then rerun preflight. |
+| Enterprise image is not reachable | Oracle Registry login or BYOL terms acceptance is missing. | Open `https://container-registry.oracle.com/ords/ocr/ba/database/enterprise`, sign in and accept the terms, then run `docker login container-registry.oracle.com` and `docker pull <image shown by preflight>`. Rerun the printed preflight command. |
 | ORDS image is not reachable | The pinned ORDS tag may not exist in the registry for that major version. | Use `--ords-image-tag TAG` with an Oracle-published tag and rerun preflight. |
 | Media download fails | Network access to Oracle official download hosts is unavailable. | Retry after checking connectivity to `download.oracle.com`. Downloads retry automatically before failing. |
 | Port preflight fails | Another process or container owns the selected port. Ports owned by the current Rapid-APEX lab are accepted and reported as already bound by the current lab container. | Read the owner shown by preflight. If it is another process or a different lab, choose different ports or stop the conflicting lab. |

@@ -199,7 +199,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 | 现象 | 检查点 | 下一步 |
 | --- | --- | --- |
 | 必需工具自动配置失败 | 当前主机没有支持的包管理器/服务启动器，或当前用户没有安装、启动 Docker 等必需工具的权限。 | 按主机环境安装或启动提示中的工具，然后重跑 `bin/rapid-apex preflight --profile <profile>`。 |
-| Enterprise 镜像不可访问 | 缺少 Oracle Registry 登录或 BYOL 镜像条款确认。 | 执行 `docker login container-registry.oracle.com`，确认所需镜像条款后重跑 preflight。 |
+| Enterprise 镜像不可访问 | 缺少 Oracle Registry 登录或 BYOL 镜像条款确认。 | 打开 `https://container-registry.oracle.com/ords/ocr/ba/database/enterprise`，登录并接受条款，然后执行 `docker login container-registry.oracle.com` 和 `docker pull <preflight 输出的镜像>`，最后重跑 preflight 输出里的命令。 |
 | ORDS 镜像不可访问 | 当前固定 ORDS tag 可能不存在。 | 使用 Oracle 已发布的 tag 通过 `--ords-image-tag TAG` 覆盖后重跑 preflight。 |
 | 安装介质下载失败 | 无法访问 Oracle 官方下载地址。 | 检查到 `download.oracle.com` 的网络后重试；下载失败会自动重试。 |
 | 端口 preflight 失败 | 其他进程或容器占用了所选端口。当前 Rapid-APEX lab 自己占用的端口会被识别为已由当前 lab 容器绑定，不会再报冲突。 | 查看 preflight 输出的占用来源；如果是其他进程或其他 lab，换端口或停止冲突 lab。 |

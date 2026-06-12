@@ -295,6 +295,10 @@ if PATH="$fake_docker_bin:$PATH" "$CLI" preflight --db 19c --apex 24.2 --ords 25
 fi
 grep -q "Database official image is not reachable: container-registry.oracle.com/database/enterprise:19.3.0.0" /tmp/rapid-apex-19c-auth.out
 grep -q "accept the required BYOL image terms" /tmp/rapid-apex-19c-auth.out
+grep -q "Open: https://container-registry.oracle.com/ords/ocr/ba/database/enterprise" /tmp/rapid-apex-19c-auth.out
+grep -q "Run: docker login container-registry.oracle.com" /tmp/rapid-apex-19c-auth.out
+grep -q "Run: docker pull container-registry.oracle.com/database/enterprise:19.3.0.0" /tmp/rapid-apex-19c-auth.out
+grep -q "Retry: bin/rapid-apex preflight --db 19c --apex 24.2 --ords 25 --license-policy byol --name oracle19c-lab" /tmp/rapid-apex-19c-auth.out
 rm -f /tmp/rapid-apex-19c-auth.out
 
 fake_install_docker_bin="$(mktemp -d)"
