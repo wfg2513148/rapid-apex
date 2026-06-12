@@ -319,8 +319,38 @@ PATH="$fake_start_docker_bin:/usr/bin:/bin" \
 grep -q "systemctl enable --now docker" "$start_capture"
 rm -f "$start_capture" "$docker_started_marker"
 
+fake_colima_bin="$(mktemp -d)"
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_install_docker_bin" "$fake_start_docker_bin" "$fake_colima_bin"' EXIT
+colima_capture="$(mktemp)"
+colima_started_marker="$(mktemp)"
+rm -f "$colima_started_marker"
+cat >"$fake_colima_bin/docker" <<'FAKE_COLIMA_DOCKER'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+  info)
+    [[ -f "${RAPID_APEX_COLIMA_STARTED_MARKER:?}" ]]
+    ;;
+  ps) exit 0 ;;
+esac
+FAKE_COLIMA_DOCKER
+chmod +x "$fake_colima_bin/docker"
+cat >"$fake_colima_bin/colima" <<'FAKE_COLIMA'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'colima %s\n' "$*" >>"${RAPID_APEX_COLIMA_CAPTURE:?}"
+touch "${RAPID_APEX_COLIMA_STARTED_MARKER:?}"
+FAKE_COLIMA
+chmod +x "$fake_colima_bin/colima"
+PATH="$fake_colima_bin:/usr/bin:/bin" \
+  RAPID_APEX_COLIMA_CAPTURE="$colima_capture" \
+  RAPID_APEX_COLIMA_STARTED_MARKER="$colima_started_marker" \
+  bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_require_docker"
+grep -q "colima start" "$colima_capture"
+rm -f "$colima_capture" "$colima_started_marker"
+
 fake_required_tool_bin="$(mktemp -d)"
-trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_install_docker_bin" "$fake_start_docker_bin" "$fake_required_tool_bin"' EXIT
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_install_docker_bin" "$fake_start_docker_bin" "$fake_colima_bin" "$fake_required_tool_bin"' EXIT
 required_tool_capture="$(mktemp)"
 cat >"$fake_required_tool_bin/apt-get" <<'FAKE_REQUIRED_APT_GET'
 #!/usr/bin/env bash

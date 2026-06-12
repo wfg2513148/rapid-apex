@@ -911,11 +911,13 @@ rapid_apex_start_docker_daemon() {
     rapid_apex_run_privileged systemctl enable --now docker
   elif command -v service >/dev/null 2>&1; then
     rapid_apex_run_privileged service docker start
+  elif command -v colima >/dev/null 2>&1; then
+    colima start
   elif command -v open >/dev/null 2>&1; then
     open -a Docker
   else
     printf 'Docker is installed, but no supported automatic service starter was found.\n' >&2
-    printf 'Supported automatic starters: systemctl, service, macOS open.\n' >&2
+    printf 'Supported automatic starters: systemctl, service, Colima, macOS open.\n' >&2
     return 2
   fi
 

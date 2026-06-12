@@ -166,7 +166,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 # 主机前置条件
 
 - 首屏安装示例使用 `curl` 和 `tar` 下载仓库归档；安装部署不要求用户预先安装 Git。
-- 运行环境需要 Docker。CLI 执行过程中会在可行时自动通过 `apt-get`、`dnf`、`yum` 或 Homebrew 安装 Docker、`curl`、`unzip` 等必需工具，并尝试启动 Docker daemon；如果当前主机不支持自动处理，会在耗时安装开始前给出明确失败原因。
+- 运行环境需要 Docker。CLI 执行过程中会在可行时自动通过 `apt-get`、`dnf`、`yum` 或 Homebrew 安装 Docker、`curl`、`unzip` 等必需工具，并尝试通过常见 Linux 服务管理器、Colima 或 macOS Docker Desktop 启动 Docker daemon；如果当前主机不支持自动处理，会在耗时安装开始前给出明确失败原因。
 - 官方 Database/ORDS 镜像 profile 需要足够本地磁盘空间存放 Oracle 镜像、安装介质、生成的 lab 数据、Playwright 和证据文件。现代官方镜像 profile 的 preflight 会检查至少 10 GiB 可用空间。
 - Enterprise Edition profile 需要用户自行具备有效 Oracle BYOL 权利，并完成 Oracle Container Registry 登录和镜像条款确认。
 - 浏览器 e2e 验证需要 Node.js 和 npm，CLI 会在 `.rapid-apex/playwright/` 下安装并运行 Playwright Chromium。

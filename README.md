@@ -224,8 +224,9 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 - Docker is required at runtime. During CLI execution, Rapid-APEX automatically
   attempts to install required tools such as Docker, `curl`, and `unzip` with
   `apt-get`, `dnf`, `yum`, or Homebrew when they are available. It also attempts
-  to start the Docker daemon. If automatic setup is not possible, the CLI
-  reports the unsupported step before any long-running install work.
+  to start the Docker daemon through common Linux service managers, Colima, or
+  Docker Desktop on macOS. If automatic setup is not possible, the CLI reports
+  the unsupported step before any long-running install work.
 - Official Database/ORDS profiles need enough local disk for Oracle images,
   installation media, generated lab data, Playwright, and evidence files. The
   CLI preflight checks for at least 10 GiB free for modern official-image
