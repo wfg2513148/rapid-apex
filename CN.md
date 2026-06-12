@@ -23,6 +23,26 @@ bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
 
 这个 profile 会部署 Oracle Database 26ai Free、Oracle APEX 26.1 和 ORDS 26.x。`e2e` 会在需要时自动尝试安装或启动 Docker，然后执行安装、状态检查、HTTP smoke、浏览器验证，并把验证证据写入 `.rapid-apex/evidence/<lab-name>/`。
 
+命令完成后，看 `info`、`status` 或 `e2e` 输出里的 `APEX access` 信息。仓库自带的 `profiles/26ai-apex261-ords26.env` 默认 APEX Builder 入口是：
+
+```text
+http://localhost:32514/ords/
+```
+
+登录信息：
+
+```text
+Workspace: demo
+Username: demo
+Password: demo
+```
+
+如果 lab 容器已经在运行，再次执行 `e2e` 会复用当前环境做验证，不会重新安装。只想查看当前环境和入口、且不需要检查 Docker 容器状态时，执行：
+
+```bash
+bin/rapid-apex info --profile profiles/26ai-apex261-ords26.env
+```
+
 只有需要在验证后停止环境时才加 `--destroy-after`；如果还要删除生成的数据目录，再加 `--purge-data`。
 
 > 当前版本目录支持的产品版本:
@@ -41,6 +61,7 @@ bin/rapid-apex list-versions
 bin/rapid-apex validate --db 26ai --apex 26.1 --ords 26
 bin/rapid-apex plan --db 26ai --apex 26.1 --ords 26 --name apex261-lab
 bin/rapid-apex generate-profile --db 26ai --apex 26.1 --ords 26 --output profiles/custom-26ai.env
+bin/rapid-apex info --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex preflight --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex install --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex status --profile profiles/26ai-apex261-ords26.env
@@ -181,7 +202,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 | Enterprise 镜像不可访问 | 缺少 Oracle Registry 登录或 BYOL 镜像条款确认。 | 执行 `docker login container-registry.oracle.com`，确认所需镜像条款后重跑 preflight。 |
 | ORDS 镜像不可访问 | 当前固定 ORDS tag 可能不存在。 | 使用 Oracle 已发布的 tag 通过 `--ords-image-tag TAG` 覆盖后重跑 preflight。 |
 | 安装介质下载失败 | 网络或配置的 media mirror 不可访问。 | 检查网络后重试，或使用 `--media-base URL` 指向可访问镜像；下载失败会自动重试。 |
-| 端口 preflight 失败 | 其他进程或容器占用了所选端口。 | 查看 preflight 输出的占用来源，换端口或停止冲突 lab。 |
+| 端口 preflight 失败 | 其他进程或容器占用了所选端口。当前 Rapid-APEX lab 自己占用的端口会被识别为已由当前 lab 容器绑定，不会再报冲突。 | 查看 preflight 输出的占用来源；如果是其他进程或其他 lab，换端口或停止冲突 lab。 |
 | 安装中途停止 | 可能残留容器、network 或生成的数据目录。 | 运行 `bin/rapid-apex recover --profile <profile> --purge-data`，只清理当前 lab。 |
 | destroy/recover 失败 | 容器归属数据或 Docker 资源无法删除。 | 查看残留资源报告，停止剩余容器后重跑 recover，或用合适权限删除列出的数据路径。 |
 | browser smoke 登录前失败 | ORDS 可能还没就绪、APEX 仍在安装，或 Playwright 缺失。 | 先看 `bin/rapid-apex logs --profile <profile>`，再重跑 `smoke`，最后重跑 `browser-smoke` 或 `e2e`。 |
@@ -280,13 +301,23 @@ bin/rapid-apex e2e --profile profiles/my-26ai-lab.env
 
 生成的 profile 中会包含 `RAPID_APEX_ORDS_PORT`、`RAPID_APEX_DB_PORT` 和 `RAPID_APEX_EM_PORT`。使用这些值拼接本地访问地址和连接串。
 
-默认 APEX 入口为：
+默认 APEX Builder 入口为：
 
 ```text
 http://localhost:<RAPID_APEX_ORDS_PORT>/ords/
 ```
 
-当前支持的安装链路会创建 `demo` workspace 和 `demo/demo` 开发者账号，用于浏览器验证。数据库连接信息取决于所选 Database family 和 profile 端口，连接前请先查看生成的 profile 和 `bin/rapid-apex plan --profile <profile>` 输出。
+对于 `profiles/26ai-apex261-ords26.env`，入口就是 `http://localhost:32514/ords/`。当前支持的安装链路会创建 `demo` workspace 和 `demo/demo` 开发者账号，用于浏览器验证。
+
+也可以直接让 CLI 打印当前环境信息和入口，不要求 Docker daemon 已启动：
+
+```bash
+bin/rapid-apex info --profile profiles/26ai-apex261-ords26.env
+```
+
+需要同时查看容器运行状态时，再使用 `status`。
+
+数据库连接信息取决于所选 Database family 和 profile 端口，连接前请先查看生成的 profile 和 `bin/rapid-apex plan --profile <profile>` 输出。
 
 ## 恢复或删除 lab
 

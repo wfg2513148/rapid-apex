@@ -51,6 +51,22 @@ dry_run_output="$("$CLI" install --dry-run --profile "$ROOT_DIR/profiles/26ai-ap
 grep -q "Rapid-APEX installation plan" <<<"$dry_run_output"
 grep -q "Database: 26ai" <<<"$dry_run_output"
 
+info_output="$("$CLI" info --profile "$ROOT_DIR/profiles/26ai-apex261-ords26.env")"
+grep -q "Rapid-APEX environment" <<<"$info_output"
+grep -q "Name: apex261-26ai-lab" <<<"$info_output"
+grep -q "Database/APEX/ORDS: 26ai / 26.1 / 26" <<<"$info_output"
+grep -q "Profile: $ROOT_DIR/profiles/26ai-apex261-ords26.env" <<<"$info_output"
+grep -q "Database container: apex261-26ai-lab_db" <<<"$info_output"
+grep -q "ORDS container: apex261-26ai-lab_ords" <<<"$info_output"
+grep -q "ORDS HTTP: 32514" <<<"$info_output"
+grep -q "Builder URL: http://localhost:32514/ords/" <<<"$info_output"
+grep -q "Workspace: demo" <<<"$info_output"
+grep -q "Evidence directory: $ROOT_DIR/.rapid-apex/evidence/apex261-26ai-lab" <<<"$info_output"
+if grep -q "Unknown command" <<<"$info_output"; then
+  echo "info command is not registered" >&2
+  exit 1
+fi
+
 preflight_output="$("$CLI" preflight --db 26ai --apex 26.1 --ords 26 --name codex-lab 2>&1 || true)"
 grep -q "Rapid-APEX preflight" <<<"$preflight_output"
 if grep -q "Unknown command" <<<"$preflight_output"; then
@@ -133,6 +149,26 @@ if grep -q "demo/demo\\|RAPID_APEX_WORKSPACE_PASSWORD\\|password" "$fake_e2e_dir
   exit 1
 fi
 rm -rf "$fake_e2e_dir"
+
+fake_existing_e2e_dir="$(mktemp -d)"
+fake_existing_e2e_output="$(bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh';
+  rapid_apex_cmd_preflight() { :; };
+  rapid_apex_lab_containers_running() { return 0; };
+  rapid_apex_cmd_install() { echo 'install should be skipped'; return 99; };
+  rapid_apex_cmd_status() { :; };
+  rapid_apex_wait_for_http() { :; };
+  rapid_apex_grant_runtime_proxy_users() { :; };
+  rapid_apex_restart_ords_after_proxy_grant() { :; };
+  rapid_apex_cmd_smoke() { :; };
+  rapid_apex_cmd_browser_smoke() { printf '{\"status\":\"passed\"}\n'; };
+  rapid_apex_cmd_e2e --db 26ai --apex 26.1 --ords 26 --name existing-e2e-lab --ords-port 9090 --evidence-dir '$fake_existing_e2e_dir'")"
+grep -q "Lab containers already exist and are running; skipping install." <<<"$fake_existing_e2e_output"
+if grep -q "install should be skipped" <<<"$fake_existing_e2e_output"; then
+  echo "e2e must not reinstall over an already running lab" >&2
+  exit 1
+fi
+grep -q '"status": "passed"' "$fake_existing_e2e_dir/e2e-summary.json"
+rm -rf "$fake_existing_e2e_dir"
 
 fake_failed_e2e_dir="$(mktemp -d)"
 if bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh';
@@ -491,8 +527,41 @@ preflight_port_output="$(PATH="$fake_port_bin:$PATH" bash -c ". '$ROOT_DIR/lib/r
 grep -q "port 9090 is already in use" <<<"$preflight_port_output"
 grep -q "owner_db" <<<"$preflight_port_output"
 
+own_port_output="$(PATH="$fake_port_bin:$PATH" bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_default_config; rapid_apex_parse_options --db 26ai --apex 26.1 --ords 26 --name owner --ords-port 9090; rapid_apex_print_port_check 'ORDS HTTP' \"\$RAPID_APEX_ORDS_PORT\"")"
+grep -q "PASS ORDS HTTP" <<<"$own_port_output"
+grep -q "already bound by current lab container owner_db" <<<"$own_port_output"
+
+fake_status_bin="$(mktemp -d)"
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin" "$fake_proxy_bin" "$fake_port_bin" "$fake_status_bin"' EXIT
+cat >"$fake_status_bin/docker" <<'FAKE_STATUS_DOCKER'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+  info) exit 0 ;;
+  ps)
+    printf 'apex261-26ai-lab_ords\tcontainer-registry.oracle.com/database/ords:26.1.1\tUp 17 minutes\t0.0.0.0:32514->8181/tcp\n'
+    printf 'apex261-26ai-lab_db\tcontainer-registry.oracle.com/database/free:latest\tUp 28 minutes (healthy)\t0.0.0.0:31522->1521/tcp, 0.0.0.0:35501->5500/tcp\n'
+    exit 0
+    ;;
+esac
+exit 0
+FAKE_STATUS_DOCKER
+chmod +x "$fake_status_bin/docker"
+status_access_output="$(PATH="$fake_status_bin:$PATH" "$CLI" status --profile "$ROOT_DIR/profiles/26ai-apex261-ords26.env")"
+grep -q "APEX access" <<<"$status_access_output"
+grep -q "Builder URL: http://localhost:32514/ords/" <<<"$status_access_output"
+grep -q "Workspace: demo" <<<"$status_access_output"
+grep -q "Username: demo" <<<"$status_access_output"
+grep -q "Password: demo" <<<"$status_access_output"
+status_custom_password_output="$(PATH="$fake_status_bin:$PATH" "$CLI" status --profile "$ROOT_DIR/profiles/26ai-apex261-ords26.env" --password "do-not-print")"
+grep -q "Password: <custom password is set; not printed>" <<<"$status_custom_password_output"
+if grep -q "do-not-print" <<<"$status_custom_password_output"; then
+  echo "status must not print custom workspace passwords" >&2
+  exit 1
+fi
+
 fake_disk_bin="$(mktemp -d)"
-trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin" "$fake_proxy_bin" "$fake_port_bin" "$fake_disk_bin"' EXIT
+trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin" "$fake_proxy_bin" "$fake_port_bin" "$fake_status_bin" "$fake_disk_bin"' EXIT
 cat >"$fake_disk_bin/df" <<'FAKE_DISK_DF'
 #!/usr/bin/env bash
 set -euo pipefail

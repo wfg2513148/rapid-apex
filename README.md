@@ -33,6 +33,24 @@ install or start Docker when needed, installs the lab, checks container status,
 runs HTTP smoke validation and browser validation, and writes an evidence
 summary under `.rapid-apex/evidence/<lab-name>/`.
 
+When the command finishes, use the `APEX access` block printed by `info`,
+`status`, or `e2e`. For the bundled `profiles/26ai-apex261-ords26.env`
+profile, the default APEX Builder entry point is:
+
+```text
+http://localhost:32514/ords/
+```
+
+Log in with workspace `demo`, username `demo`, and password `demo`.
+
+If the lab containers are already running, rerunning `e2e` reuses them for
+validation instead of reinstalling. To inspect the current environment without
+Docker status checks or browser validation, use:
+
+```bash
+bin/rapid-apex info --profile profiles/26ai-apex261-ords26.env
+```
+
 Add `--destroy-after` only when the lab should be stopped after validation. Add
 `--purge-data` when the generated lab data directory should also be removed.
 
@@ -80,6 +98,7 @@ bin/rapid-apex list-versions
 bin/rapid-apex validate --db 26ai --apex 26.1 --ords 26
 bin/rapid-apex plan --db 26ai --apex 26.1 --ords 26 --name apex261-lab
 bin/rapid-apex generate-profile --db 26ai --apex 26.1 --ords 26 --output profiles/custom-26ai.env
+bin/rapid-apex info --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex preflight --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex install --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex status --profile profiles/26ai-apex261-ords26.env
@@ -249,7 +268,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 | Enterprise image is not reachable | Oracle Registry login or BYOL terms acceptance is missing. | Run `docker login container-registry.oracle.com`, accept the required image terms, then rerun preflight. |
 | ORDS image is not reachable | The pinned ORDS tag may not exist in the registry for that major version. | Use `--ords-image-tag TAG` with an Oracle-published tag and rerun preflight. |
 | Media download fails | Network access or the configured media mirror is unavailable. | Retry after checking connectivity, or use `--media-base URL` for a reachable mirror. Downloads retry automatically before failing. |
-| Port preflight fails | Another process or container owns the selected port. | Read the owner shown by preflight, choose different ports, or stop the conflicting lab. |
+| Port preflight fails | Another process or container owns the selected port. Ports owned by the current Rapid-APEX lab are accepted and reported as already bound by the current lab container. | Read the owner shown by preflight. If it is another process or a different lab, choose different ports or stop the conflicting lab. |
 | Install stops partway through | Containers, network, or generated data may remain. | Run `bin/rapid-apex recover --profile <profile> --purge-data` to clean only the selected lab. |
 | Destroy/recover fails | Container-owned data or a Docker resource could not be removed. | Review the residual resource report, stop remaining containers, then rerun recover or remove the listed data path with appropriate permissions. |
 | Browser smoke fails before login | ORDS may not be ready, APEX may still be installing, or Playwright is missing. | Check `bin/rapid-apex logs --profile <profile>`, rerun `smoke`, then rerun `browser-smoke` or `e2e`. |
@@ -360,16 +379,29 @@ Generated profiles define `RAPID_APEX_ORDS_PORT`, `RAPID_APEX_DB_PORT`, and
 `RAPID_APEX_EM_PORT`. Use those values to build local URLs and connection
 strings.
 
-The default APEX entry point is:
+The default APEX Builder entry point is:
 
 ```text
 http://localhost:<RAPID_APEX_ORDS_PORT>/ords/
 ```
 
-Supported install paths create a `demo` workspace and `demo` developer account
-with password `demo` for browser validation. Database connection details depend
-on the selected Database family and profile ports; inspect the generated profile
-and `bin/rapid-apex plan --profile <profile>` output before connecting.
+For `profiles/26ai-apex261-ords26.env`, that resolves to
+`http://localhost:32514/ords/`. Supported install paths create a `demo`
+workspace and `demo` developer account with password `demo` for browser
+validation.
+
+The `info` command prints the same access block without requiring Docker to be
+reachable:
+
+```bash
+bin/rapid-apex info --profile profiles/26ai-apex261-ords26.env
+```
+
+Use `status` when you also want current container state.
+
+Database connection details depend on the selected Database family and profile
+ports; inspect the generated profile and
+`bin/rapid-apex plan --profile <profile>` output before connecting.
 
 ### Recover or Remove a Lab
 

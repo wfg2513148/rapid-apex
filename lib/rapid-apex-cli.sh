@@ -14,6 +14,7 @@ Usage:
   rapid-apex validate [--profile FILE] [--db VERSION] [--apex VERSION] [--ords VERSION] [--license-policy demo|byol]
   rapid-apex plan [--profile FILE] [--db VERSION] [--apex VERSION] [--ords VERSION] [--license-policy demo|byol] [--name NAME] [--media-base URL] [--db-port PORT] [--ords-port PORT] [--db-image IMAGE] [--ords-image-tag TAG]
   rapid-apex generate-profile [same options as plan] [--output FILE]
+  rapid-apex info [same options as plan]
   rapid-apex preflight [same options as plan]
   rapid-apex install --dry-run [same options as plan]
   rapid-apex status [--profile FILE] [--name NAME]
@@ -977,11 +978,35 @@ rapid_apex_port_owner() {
   printf 'owner unavailable\n'
 }
 
+rapid_apex_current_lab_port_owner() {
+  local port="$1"
+  local owner=""
+
+  if command -v docker >/dev/null 2>&1; then
+    owner="$(docker ps --format '{{.Names}}\t{{.Ports}}' 2>/dev/null |
+      awk -v port="$port" -v db="${RAPID_APEX_NAME}_db" -v ords="${RAPID_APEX_NAME}_ords" '
+        ($1 == db || $1 == ords) && $0 ~ "(^|[,:])" port "->" {print $1; exit}
+      ')"
+  fi
+
+  if [[ -n "$owner" ]]; then
+    printf '%s\n' "$owner"
+    return 0
+  fi
+
+  return 1
+}
+
 rapid_apex_print_port_check() {
   local label="$1"
   local port="$2"
   local status
   local owner
+
+  if owner="$(rapid_apex_current_lab_port_owner "$port")"; then
+    printf 'PASS %-18s port %s is already bound by current lab container %s\n' "$label" "$port" "$owner"
+    return 0
+  fi
 
   if rapid_apex_port_in_use "$port"; then
     status="0"
@@ -1133,6 +1158,52 @@ rapid_apex_cmd_preflight() {
   printf '\nPreflight passed.\n'
 }
 
+rapid_apex_print_access_info() {
+  local password_hint="<custom password is set; not printed>"
+
+  if [[ "$RAPID_APEX_WORKSPACE_PASSWORD" == "demo" ]]; then
+    password_hint="demo"
+  fi
+
+  cat <<EOF
+
+APEX access:
+  Builder URL: $(rapid_apex_ords_url)/
+  Workspace: ${RAPID_APEX_WORKSPACE}
+  Username: ${RAPID_APEX_WORKSPACE_USER}
+  Password: ${password_hint}
+  EM Express: https://localhost:${RAPID_APEX_EM_PORT}/em/
+  Database service: localhost:${RAPID_APEX_DB_PORT}/$(rapid_apex_db_service_name)
+EOF
+}
+
+rapid_apex_print_environment_info() {
+  printf 'Rapid-APEX environment\n\n'
+  printf 'Name: %s\n' "$RAPID_APEX_NAME"
+  printf 'Database/APEX/ORDS: %s / %s / %s\n' "$RAPID_APEX_DB_VERSION" "$RAPID_APEX_APEX_VERSION" "$RAPID_APEX_ORDS_VERSION"
+  printf 'License policy: %s\n' "$RAPID_APEX_LICENSE_POLICY"
+  if [[ -n "$RAPID_APEX_PROFILE" ]]; then
+    printf 'Profile: %s\n' "$RAPID_APEX_PROFILE"
+  fi
+  printf '\nDocker resources:\n'
+  printf '  Network: %s_network\n' "$RAPID_APEX_NAME"
+  printf '  Database container: %s_db\n' "$RAPID_APEX_NAME"
+  printf '  ORDS container: %s_ords\n' "$RAPID_APEX_NAME"
+  printf '\nPorts:\n'
+  printf '  Database listener: %s\n' "$RAPID_APEX_DB_PORT"
+  printf '  EM Express: %s\n' "$RAPID_APEX_EM_PORT"
+  printf '  ORDS HTTP: %s\n' "$RAPID_APEX_ORDS_PORT"
+  rapid_apex_print_access_info
+  printf '\nEvidence directory: %s\n' "$(rapid_apex_evidence_dir)"
+}
+
+rapid_apex_cmd_info() {
+  rapid_apex_default_config
+  rapid_apex_parse_options "$@"
+  rapid_apex_validate_config
+  rapid_apex_print_environment_info
+}
+
 rapid_apex_cmd_status() {
   rapid_apex_default_config
   rapid_apex_parse_options "$@"
@@ -1149,6 +1220,9 @@ rapid_apex_cmd_status() {
   else
     printf 'No Rapid-APEX containers found for name: %s\n' "$RAPID_APEX_NAME"
   fi
+
+  printf '\n'
+  rapid_apex_print_environment_info
 }
 
 rapid_apex_cmd_logs() {
@@ -1462,6 +1536,18 @@ rapid_apex_restart_ords_after_proxy_grant() {
   rapid_apex_wait_for_http "$(rapid_apex_ords_url)/" "$ords_container" 900
 }
 
+rapid_apex_lab_containers_running() {
+  local db_container="${RAPID_APEX_NAME}_db"
+  local ords_container="${RAPID_APEX_NAME}_ords"
+  local names
+
+  names="$(docker ps \
+    --filter "name=^/${RAPID_APEX_NAME}_(db|ords)$" \
+    --format '{{.Names}}' 2>/dev/null || true)"
+
+  grep -qx "$db_container" <<<"$names" && grep -qx "$ords_container" <<<"$names"
+}
+
 rapid_apex_cmd_e2e() {
   local e2e_status=0
   local cleanup_status="skipped"
@@ -1494,7 +1580,11 @@ rapid_apex_cmd_e2e() {
   started_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
   rapid_apex_cmd_preflight "$@" || e2e_status="$?"
   if [[ "$e2e_status" == "0" ]]; then
-    rapid_apex_cmd_install "$@" || e2e_status="$?"
+    if rapid_apex_lab_containers_running; then
+      printf 'Lab containers already exist and are running; skipping install.\n'
+    else
+      rapid_apex_cmd_install "$@" || e2e_status="$?"
+    fi
   fi
   if [[ "$e2e_status" == "0" ]]; then
     rapid_apex_cmd_status "$@" || e2e_status="$?"
@@ -1651,6 +1741,7 @@ rapid_apex_main() {
     validate) rapid_apex_cmd_validate "$@" ;;
     plan) rapid_apex_cmd_plan "$@" ;;
     generate-profile) rapid_apex_cmd_generate_profile "$@" ;;
+    info) rapid_apex_cmd_info "$@" ;;
     preflight) rapid_apex_cmd_preflight "$@" ;;
     install) rapid_apex_cmd_install "$@" ;;
     status) rapid_apex_cmd_status "$@" ;;
