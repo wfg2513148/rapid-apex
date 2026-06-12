@@ -36,12 +36,6 @@ The repository version catalog is maintained in `tools/version-matrix.sh`.
 
 ### Oracle REST Data Services
 
-- 3.0.12
-- 18.1
-- 18.2
-- 18.4
-- 19.2
-- 20.x
 - 21.x
 - 22.x
 - 23.x
@@ -58,7 +52,7 @@ Rapid-APEX keeps legacy and modern installer families separate.
 | Database | 18c | `oracle-express-container` |
 | Database | 19c, 26ai-ee | `oracle-enterprise-ru-container` |
 | Database | 26ai | `oracle-free-container` |
-| ORDS | 3.0.12, 18.x, 19.x, 20.x, 21.x | `legacy-simple` |
+| ORDS | 21.x | `legacy-simple` |
 | ORDS | 22.x, 23.x, 24.x, 25.x, 26.x | `official-oracle-image` |
 
 The legacy `install.sh` path still reflects the original XE 18c flow. New work
@@ -75,9 +69,8 @@ Prefer Oracle official container images from Oracle Container Registry:
 - Database 26ai Enterprise BYOL: `container-registry.oracle.com/database/enterprise:latest` by default, override with `--db-image` for a pinned authorized tag
 - ORDS: `container-registry.oracle.com/database/ords`
 
-Fallback Dockerfile builds should be used only when an exact legacy version is
-not available as an official image and the requested media is available from an
-approved download source.
+Fallback Dockerfile builds should be used only when the requested media has a
+verified Oracle official download URL.
 
 ORDS official-image profiles use pinned major-version tags instead of `latest`.
 Use `--ords-image-tag TAG` to select a different Oracle-published patch tag for
@@ -112,8 +105,8 @@ bin/rapid-apex destroy --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex recover --profile profiles/26ai-apex261-ords26.env
 ```
 
-Current `install` execution is enabled for the legacy 18c XE + ORDS
-3/18/19/20/21 family and for modern official Database + ORDS image profiles.
+Current `install` execution is enabled for the legacy 18c XE + ORDS 21 family
+and for modern official Database + ORDS image profiles.
 Run with `--dry-run` to inspect validated plans, and run `preflight` before any
 real installation attempt. Legacy and official-image installs create a `demo`
 workspace and `demo` developer account with password `demo` for browser-based
@@ -162,7 +155,7 @@ host port availability.
 | Required tool setup | `preflight` attempts to install required tools such as Docker and start the Docker daemon with supported host tooling before reporting failure. | If automatic setup is unsupported or lacks privilege, install or start the reported tool with host-appropriate privileges before rerunning preflight. |
 | BYOL registry access | Enterprise profiles validate the selected Database image locally or through the registry manifest. | Log in to Oracle Container Registry and accept the required image terms. |
 | ORDS image tag | Official ORDS profiles validate the selected pinned tag. | Provide `--ords-image-tag TAG` when Oracle publishes a different patch tag for that ORDS major. |
-| Media downloads | Downloads retry before failing and remove partial files on failure. | Check network access or use `--media-base URL` for a reachable mirror. |
+| Media downloads | Downloads retry before failing and remove partial files on failure. | Check network access to Oracle official download hosts. |
 | Port conflicts | `preflight` prints the occupied port and, where possible, the owning process/container. | Change profile ports or stop the selected conflicting lab/container. |
 | Interrupted install | `recover` removes only `<name>_db`, `<name>_ords`, `<name>_network`, and selected lab data with `--purge-data`. | Run `bin/rapid-apex recover --profile <profile> --purge-data`. |
 | Failed cleanup | `destroy`/`recover` reports residual containers, networks, and selected lab data paths. | Stop remaining resources, rerun recover, or remove the listed data path with appropriate permissions. |
@@ -175,7 +168,7 @@ OCI Docker host recorded in the install test plans:
 
 | Database | APEX | ORDS | Profiles |
 | --- | --- | --- | --- |
-| 18c XE | 5.1.4, 18.2, 19.1, 20.2, 21.2 | 3.0.12, 18.4, 19.2, 20.x, 21.x | `profiles/18c-*` |
+| 18c XE | 21.2 | 21.x | `profiles/18c-*` |
 | 26ai Free | 22.2, 23.2, 24.1, 26.1 | 22.x, 23.x, 24.x, 26.x | `profiles/26ai-*` |
 | 19c Enterprise BYOL | 22.1, 23.1, 24.2 | 23.x, 24.x, 25.x | `profiles/19c-*` |
 | 26ai Enterprise BYOL | 26.1 | 26.x | `profiles/26ai-ee-*` |
@@ -187,15 +180,13 @@ version-specific findings.
 
 ## Media Source
 
-The original scripts default to the historical public bucket. New automation
-should allow a caller to set an OSS or private media base URL, for example:
+Rapid-APEX resolves Oracle installation media to Oracle official download hosts
+or Oracle Container Registry image references. Versions without a verified
+Oracle official media URL are removed from the supported catalog instead of
+falling back to third-party mirrors.
 
-```bash
-RAPID_APEX_MEDIA_BASE_URL=https://example.oss-cn-shanghai.aliyuncs.com/
-```
-
-The repository must not commit Oracle installation media or private download
-URLs that are not intended to be public.
+The repository must not commit Oracle installation media, private download
+URLs, or third-party mirror defaults for Oracle-owned installation media.
 
 ## Validation
 

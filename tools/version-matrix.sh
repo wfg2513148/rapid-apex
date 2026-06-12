@@ -22,10 +22,6 @@ rapid_apex_supported_apex_versions() {
 
 rapid_apex_supported_ords_versions() {
   printf '%s\n' \
-    3.0.12 \
-    18.1 18.2 18.4 \
-    19.2 19.2.0 \
-    20 20.x \
     21 21.x \
     22 22.x \
     23 23.x \
@@ -108,10 +104,6 @@ rapid_apex_is_license_safe_db_version() {
 rapid_apex_ords_major() {
   local version="$1"
   case "$version" in
-    3.0.12) printf '%s\n' 3 ;;
-    18.*) printf '%s\n' 18 ;;
-    19.*) printf '%s\n' 19 ;;
-    20|20.*) printf '%s\n' 20 ;;
     21|21.*) printf '%s\n' 21 ;;
     22|22.*) printf '%s\n' 22 ;;
     23|23.*) printf '%s\n' 23 ;;
@@ -126,7 +118,7 @@ rapid_apex_ords_install_family() {
   local major
   major="$(rapid_apex_ords_major "$1")"
   case "$major" in
-    3|18|19|20|21) printf '%s\n' legacy-simple ;;
+    21) printf '%s\n' legacy-simple ;;
     22|23|24|25|26) printf '%s\n' official-oracle-image ;;
     *) return 1 ;;
   esac
@@ -136,7 +128,7 @@ rapid_apex_ords_image_strategy() {
   local major
   major="$(rapid_apex_ords_major "$1")"
   case "$major" in
-    3|18|19|20|21) printf '%s\n' build-from-oss-media ;;
+    21) printf '%s\n' build-from-official-oracle-media ;;
     22|23|24|25|26) printf '%s\n' official-oracle-image-preferred ;;
     *) return 1 ;;
   esac
@@ -146,7 +138,7 @@ rapid_apex_ords_java_base_image() {
   local major
   major="$(rapid_apex_ords_major "$1")"
   case "$major" in
-    3|18|19|20|21) printf '%s\n' eclipse-temurin:8-jre-alpine ;;
+    21) printf '%s\n' eclipse-temurin:8-jre-alpine ;;
     22|23|24|25|26) printf '%s\n' eclipse-temurin:17-jre-alpine ;;
     *) return 1 ;;
   esac

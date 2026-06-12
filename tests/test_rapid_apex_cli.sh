@@ -13,7 +13,7 @@ validate_output="$("$CLI" validate --db 26ai --apex 26.1 --ords 26 --name codex-
 grep -q "Rapid-APEX profile is valid" <<<"$validate_output"
 grep -q "db=26ai apex=26.1 ords=26 name=codex-lab" <<<"$validate_output"
 
-plan_output="$("$CLI" plan --db 26ai --apex 26.1 --ords 26 --name codex-lab --media-base https://oss.example/rapid-apex)"
+plan_output="$("$CLI" plan --db 26ai --apex 26.1 --ords 26 --name codex-lab)"
 grep -q "Name: codex-lab" <<<"$plan_output"
 grep -q "Database: 26ai (oracle-free-container, free, official-oracle-image)" <<<"$plan_output"
 grep -q "APEX: 26.1 (apex_26.1.zip)" <<<"$plan_output"
@@ -23,26 +23,39 @@ grep -q "ORDS official image: container-registry.oracle.com/database/ords:26.1.1
 grep -q "https://download.oracle.com/otn_software/apex/apex_26.1.zip" <<<"$plan_output"
 grep -q "Full install execution is implemented for legacy XE and official Database/ORDS profiles." <<<"$plan_output"
 
-profile_output="$("$CLI" plan --profile "$ROOT_DIR/profiles/18c-apex191-ords192.env")"
-grep -q "Name: apex191-xe18c-lab" <<<"$profile_output"
+profile_output="$("$CLI" plan --profile "$ROOT_DIR/profiles/18c-apex212-ords21.env")"
+grep -q "Name: apex212-xe18c-lab" <<<"$profile_output"
 grep -q "Database: 18c (oracle-express-container, xe, official-oracle-image-preferred)" <<<"$profile_output"
-grep -q "ORDS: 19.2 (legacy-simple" <<<"$profile_output"
+grep -q "ORDS: 21 (legacy-simple" <<<"$profile_output"
 
 for profile in "$ROOT_DIR"/profiles/*.env; do
   "$CLI" validate --profile "$profile" >/dev/null
   "$CLI" install --dry-run --profile "$profile" >/dev/null
 done
 
-override_output="$("$CLI" plan --profile "$ROOT_DIR/profiles/18c-apex191-ords192.env" --name override-lab --ords 21)"
+override_output="$("$CLI" plan --profile "$ROOT_DIR/profiles/18c-apex212-ords21.env" --name override-lab --ords 21)"
 grep -q "Name: override-lab" <<<"$override_output"
 grep -q "ORDS: 21 (legacy-simple" <<<"$override_output"
-grep -q "ORDS media: https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/ords-21.4.2.062.1806.zip" <<<"$override_output"
+grep -q "APEX media: https://download.oracle.com/otn_software/apex/apex_21.2.zip" <<<"$override_output"
+grep -q "ORDS media: https://download.oracle.com/otn_software/java/ords/ords-21.4.2.062.1806.zip" <<<"$override_output"
 
-ords20_output="$("$CLI" plan --db 18c --apex 20.2 --ords 20 --name ords20-lab)"
-grep -q "ORDS media: https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/ords-20.4.3.050.1904.zip" <<<"$ords20_output"
-ords3_output="$("$CLI" plan --db 18c --apex 5.1.4 --ords 3.0.12 --name ords3-lab)"
-grep -q "ORDS media: https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/ords-3.0.12.263.15.32.zip" <<<"$ords3_output"
-if grep -q "ords-20.x.zip\\|ords-21.x.zip" <<<"$override_output$ords20_output"; then
+legacy_apex_output="$("$CLI" plan --db 18c --apex 20.2 --ords 21 --name legacy-apex-lab)"
+grep -q "APEX media: https://download.oracle.com/otn/java/appexpress/apex_20.2.zip" <<<"$legacy_apex_output"
+if "$CLI" validate --db 18c --apex 20.2 --ords 20 >/tmp/rapid-apex-ords20.out 2>&1; then
+  echo "expected ORDS 20 to be removed from supported versions" >&2
+  rm -f /tmp/rapid-apex-ords20.out
+  exit 1
+fi
+grep -q "Unsupported ORDS version: 20" /tmp/rapid-apex-ords20.out
+rm -f /tmp/rapid-apex-ords20.out
+if "$CLI" validate --db 18c --apex 5.1.4 --ords 3.0.12 >/tmp/rapid-apex-ords3.out 2>&1; then
+  echo "expected ORDS 3.0.12 to be removed from supported versions" >&2
+  rm -f /tmp/rapid-apex-ords3.out
+  exit 1
+fi
+grep -q "Unsupported ORDS version: 3.0.12" /tmp/rapid-apex-ords3.out
+rm -f /tmp/rapid-apex-ords3.out
+if grep -q "oracle-apex-bucket\\|ords-20.x.zip\\|ords-21.x.zip" <<<"$override_output$legacy_apex_output"; then
   echo "legacy ORDS plans must use concrete media filenames" >&2
   exit 1
 fi
@@ -202,7 +215,7 @@ grep -q "RAPID_APEX_DB_IMAGE=container-registry.oracle.com/database/enterprise:1
 rm -f "$generated_byol_profile"
 
 generated_legacy_profile="$(mktemp)"
-"$CLI" generate-profile --db 18c --apex 19.1 --ords 19.2 --output "$generated_legacy_profile" >/dev/null
+"$CLI" generate-profile --db 18c --apex 19.1 --ords 21 --output "$generated_legacy_profile" >/dev/null
 grep -q "RAPID_APEX_NAME=apex191-xe18c-lab" "$generated_legacy_profile"
 grep -q "RAPID_APEX_DB_PORT=31521" "$generated_legacy_profile"
 "$CLI" validate --profile "$generated_legacy_profile" >/dev/null

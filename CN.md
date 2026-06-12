@@ -48,9 +48,9 @@ bin/rapid-apex info --profile profiles/26ai-apex261-ords26.env
 > 当前版本目录支持的产品版本:
 > - **Oracle Database:** XE 18c, 19c Enterprise, 26ai Free, 26ai Enterprise
 > - **Oracle APEX:** 26.1, 24.2, 24.1, 23.2, 23.1, 22.2, 22.1, 21.2, 21.1, 20.2, 20.1, 19.2, 19.1, 18.2, 18.1, 5.1.4, 5.0.4
-> - **Oracle ORDS:** 26.x, 25.x, 24.x, 23.x, 22.x, 21.x, 20.x, 19.2, 18.4, 18.2, 18.1, 3.0.12
+> - **Oracle ORDS:** 26.x, 25.x, 24.x, 23.x, 22.x, 21.x
 >
-> 当前真实执行链路支持 legacy 18c XE + ORDS 3/18/19/20/21 组合，以及现代 Database + ORDS 官方镜像 profiles。
+> 当前真实执行链路支持 legacy 18c XE + ORDS 21 组合，以及现代 Database + ORDS 官方镜像 profiles。
 
 # 常用 CLI 命令
 
@@ -119,13 +119,13 @@ Rapid-APEX 会优先使用 Oracle Container Registry 上的 Oracle 官方 Databa
 新版 ORDS 官方镜像计划默认使用固定的大版本 tag，不再漂移到 `latest`；如果需要指定 Oracle 已发布的具体补丁 tag，可以使用 `--ords-image-tag TAG` 覆盖。
 企业版数据库镜像也可以通过 `--db-image IMAGE` 覆盖，适配 Oracle 针对特定大版本发布的授权镜像 tag。
 
-当前真实执行链路支持 legacy 18c XE + ORDS 3/18/19/20/21 组合，以及现代 Database + ORDS 官方镜像 profiles。legacy 和官方镜像安装都会自动创建 `demo` workspace 和 `demo/demo` 开发者账号，用于真实浏览器验收。
+当前真实执行链路支持 legacy 18c XE + ORDS 21 组合，以及现代 Database + ORDS 官方镜像 profiles。legacy 和官方镜像安装都会自动创建 `demo` workspace 和 `demo/demo` 开发者账号，用于真实浏览器验收。
 
 已完成真实安装验证的 profile 范围包括：
 
 | Database | APEX | ORDS | Profile |
 | --- | --- | --- | --- |
-| 18c XE | 5.1.4, 18.2, 19.1, 20.2, 21.2 | 3.0.12, 18.4, 19.2, 20.x, 21.x | `profiles/18c-*` |
+| 18c XE | 21.2 | 21.x | `profiles/18c-*` |
 | 26ai Free | 22.2, 23.2, 24.1, 26.1 | 22.x, 23.x, 24.x, 26.x | `profiles/26ai-*` |
 | 19c Enterprise BYOL | 22.1, 23.1, 24.2 | 23.x, 24.x, 25.x | `profiles/19c-*` |
 | 26ai Enterprise BYOL | 26.1 | 26.x | `profiles/26ai-ee-*` |
@@ -154,7 +154,7 @@ bin/rapid-apex e2e --profile profiles/my-26ai-lab.env
 bin/rapid-apex generate-profile \
   --db 18c \
   --apex 19.1 \
-  --ords 19.2 \
+  --ords 21 \
   --output profiles/my-18c-lab.env
 ```
 
@@ -192,7 +192,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 - Enterprise Edition profile 需要用户自行具备有效 Oracle BYOL 权利，并完成 Oracle Container Registry 登录和镜像条款确认。
 - 浏览器 e2e 验证需要 Node.js 和 npm，CLI 会在 `.rapid-apex/playwright/` 下安装并运行 Playwright Chromium。
 - 安装前所选主机端口必须空闲。生成的 profile 会使用非默认端口以避开常见本地 Oracle listener，也可以通过 `--db-port`、`--em-port`、`--ords-port` 覆盖。
-- Oracle 安装介质必须能从 Oracle 官方下载地址或配置的 `--media-base` 镜像地址访问。
+- Oracle 安装介质必须能从 Oracle 官方下载地址访问；Rapid-APEX 不再默认使用第三方镜像源下载 Oracle 介质。
 
 # 故障排查
 
@@ -201,7 +201,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 | 必需工具自动配置失败 | 当前主机没有支持的包管理器/服务启动器，或当前用户没有安装、启动 Docker 等必需工具的权限。 | 按主机环境安装或启动提示中的工具，然后重跑 `bin/rapid-apex preflight --profile <profile>`。 |
 | Enterprise 镜像不可访问 | 缺少 Oracle Registry 登录或 BYOL 镜像条款确认。 | 执行 `docker login container-registry.oracle.com`，确认所需镜像条款后重跑 preflight。 |
 | ORDS 镜像不可访问 | 当前固定 ORDS tag 可能不存在。 | 使用 Oracle 已发布的 tag 通过 `--ords-image-tag TAG` 覆盖后重跑 preflight。 |
-| 安装介质下载失败 | 网络或配置的 media mirror 不可访问。 | 检查网络后重试，或使用 `--media-base URL` 指向可访问镜像；下载失败会自动重试。 |
+| 安装介质下载失败 | 无法访问 Oracle 官方下载地址。 | 检查到 `download.oracle.com` 的网络后重试；下载失败会自动重试。 |
 | 端口 preflight 失败 | 其他进程或容器占用了所选端口。当前 Rapid-APEX lab 自己占用的端口会被识别为已由当前 lab 容器绑定，不会再报冲突。 | 查看 preflight 输出的占用来源；如果是其他进程或其他 lab，换端口或停止冲突 lab。 |
 | 安装中途停止 | 可能残留容器、network 或生成的数据目录。 | 运行 `bin/rapid-apex recover --profile <profile> --purge-data`，只清理当前 lab。 |
 | destroy/recover 失败 | 容器归属数据或 Docker 资源无法删除。 | 查看残留资源报告，停止剩余容器后重跑 recover，或用合适权限删除列出的数据路径。 |
@@ -237,7 +237,7 @@ bin/rapid-apex generate-profile \
 bin/rapid-apex generate-profile \
   --db 18c \
   --apex 19.1 \
-  --ords 19.2 \
+  --ords 21 \
   --output profiles/my-18c-lab.env
 ```
 

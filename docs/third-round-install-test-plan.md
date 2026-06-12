@@ -22,17 +22,13 @@ without introducing a new installer family.
 | --- | --- | --- | --- | --- | --- |
 | T0 | 26ai Free | 22.2 | 22.x | `profiles/26ai-apex222-ords22.env` | First official-image ORDS family and APEX 22 coverage. |
 | T1 | 19c BYOL | 22.1 | 23.x | `profiles/19c-apex221-ords23.env` | Enterprise database with APEX 22 and ORDS 23. |
-| T2 | 18c XE | 18.2 | 18.4 | `profiles/18c-apex182-ords184.env` | Older legacy APEX/ORDS generation. |
-| T3 | 18c XE | 5.1.4 | 3.0.12 | `profiles/18c-apex514-ords3012.env` | Oldest cataloged APEX and ORDS generation. |
 
 ## Execution Order
 
-Run modern official-image profiles first, then legacy profiles:
+Run modern official-image profiles:
 
 1. T0: `profiles/26ai-apex222-ords22.env`
 2. T1: `profiles/19c-apex221-ords23.env`
-3. T2: `profiles/18c-apex182-ords184.env`
-4. T3: `profiles/18c-apex514-ords3012.env`
 
 ## Command Template
 
@@ -46,8 +42,6 @@ bin/rapid-apex e2e --profile <profile> --destroy-after --purge-data
 | --- | --- | --- | --- |
 | T0 | Passed | `/u01/apex_demo/rapid-apex-third-round-20260603/.rapid-apex/evidence/apex222-26ai-lab/application-home.png` | 26ai Free/APEX 22.2/ORDS 22.4.0 completed on OCI; cleanup confirmed. |
 | T1 | Passed | `/u01/apex_demo/rapid-apex-third-round-20260603/.rapid-apex/evidence/apex221-19c-lab/application-home.png` | 19c BYOL/APEX 22.1/ORDS 23.4.0 completed on OCI; cleanup confirmed. |
-| T2 | Passed | `/u01/apex_demo/rapid-apex-third-round-20260603/.rapid-apex/evidence/apex182-xe18c-lab/application-home.png` | APEX 18.2 requires advancing the old create-application type step; cleanup confirmed. |
-| T3 | Passed | `/u01/apex_demo/rapid-apex-third-round-20260603/.rapid-apex/evidence/apex514-xe18c-lab/application-home.png` | ORDS 3.0.12 uses the hyphenated media filename; APEX 5.1 needs create confirmation and generated-app `Log In` handling; cleanup confirmed. |
 
 ## Execution Host
 
@@ -65,13 +59,9 @@ only the pre-existing `oracle26` container still running.
 
 ## Findings
 
-- APEX 18.2 has a create-application type selection page before the application
-  name form; browser smoke advances that page with `Next`.
-- APEX 5.1 has a final create-application confirmation page; browser smoke now
-  clicks `Create Application` before opening the generated application.
-- APEX 5.1 generated applications use `Log In` on the login button.
-- ORDS 3.0.12 media is published as `ords-3.0.12.263.15.32.zip`, not with a
-  dotted `ords.3...` prefix.
+- Earlier legacy ORDS 3/18/19/20 profiles were removed from the supported
+  catalog because this repository no longer has verified Oracle official direct
+  download URLs for those ORDS media files.
 
 ## Known Constraints
 

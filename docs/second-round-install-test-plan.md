@@ -20,22 +20,20 @@ milestone.
 
 | Priority | Database | APEX | ORDS | Profile | Coverage |
 | --- | --- | --- | --- | --- | --- |
-| S0 | 18c XE | 20.2 | 20.x | `profiles/18c-apex202-ords20.env` | Legacy DB plus first ORDS 20 family coverage. |
-| S1 | 18c XE | 21.2 | 21.x | `profiles/18c-apex212-ords21.env` | Last legacy-simple ORDS family before official-image ORDS. |
+| S1 | 18c XE | 21.2 | 21.x | `profiles/18c-apex212-ords21.env` | Legacy-simple ORDS family before official-image ORDS. |
 | S2 | 26ai Free | 23.2 | 23.x | `profiles/26ai-apex232-ords23.env` | Modern free database with mid-generation APEX/ORDS official images. |
 | S3 | 19c BYOL | 23.1 | 24.x | `profiles/19c-apex231-ords24.env` | Common enterprise database with APEX 23 and ORDS 24. |
 | S4 | 26ai Free | 24.1 | 24.x | `profiles/26ai-apex241-ords24.env` | Modern free database with APEX 24.1 and ORDS 24. |
 
 ## Execution Order
 
-Run legacy profiles first because they are the most likely to expose media and
+Run the legacy profile first because it is the most likely to expose media and
 APEX wizard differences:
 
-1. S0: `profiles/18c-apex202-ords20.env`
-2. S1: `profiles/18c-apex212-ords21.env`
-3. S2: `profiles/26ai-apex232-ords23.env`
-4. S3: `profiles/19c-apex231-ords24.env`
-5. S4: `profiles/26ai-apex241-ords24.env`
+1. S1: `profiles/18c-apex212-ords21.env`
+2. S2: `profiles/26ai-apex232-ords23.env`
+3. S3: `profiles/19c-apex231-ords24.env`
+4. S4: `profiles/26ai-apex241-ords24.env`
 
 ## Command Template
 
@@ -47,24 +45,19 @@ bin/rapid-apex e2e --profile <profile> --destroy-after --purge-data
 
 | Priority | Status | Evidence | Notes |
 | --- | --- | --- | --- |
-| S0 | Passed | `/tmp/rapid-apex-evidence/s0-pass-final/application-home.png` | `bin/rapid-apex e2e --profile profiles/18c-apex202-ords20.env --destroy-after --purge-data` completed on OCI with Database 18c XE, APEX 20.2, ORDS 20.4.3. Browser created app `100` and opened `.../rapid-apex-smoke-20260602014031/home`. |
 | S1 | Passed | `/tmp/rapid-apex-evidence/s1-pass-final/application-home.png` | `bin/rapid-apex e2e --profile profiles/18c-apex212-ords21.env --destroy-after --purge-data` completed on OCI with Database 18c XE, APEX 21.2, ORDS 21.4.2. Browser created app `100` from a traditional `f?p` entry flow and opened `.../rapid-apex-smoke-20260602025304/home`. |
 | S2 | Passed | `/tmp/rapid-apex-evidence/s2-pass-final/application-home.png` | `bin/rapid-apex e2e --profile profiles/26ai-apex232-ords23.env --destroy-after --purge-data` completed on OCI with Database 26ai Free, APEX 23.2, ORDS 23.4.0. Browser created app `100` and opened `http://localhost:32522/ords/r/demo/rapid-apex-smoke-20260602055143/home?session=632801035529`. |
 | S3 | Passed | `/tmp/rapid-apex-evidence/s3-pass-u01-final/application-home.png` | `bin/rapid-apex e2e --profile profiles/19c-apex231-ords24.env --destroy-after --purge-data` completed on the OCI host under `/u01/apex_demo/rapid-apex` with Database 19c Enterprise BYOL, APEX 23.1, ORDS 24.2.3. Browser created app `100` and opened `http://localhost:32523/ords/r/demo/rapid-apex-smoke-20260602095332/home?session=13992879690891`. Test containers, network, and lab data were purged after the run. |
 | S4 | Passed | `/tmp/rapid-apex-evidence/s4-pass-u01-final/application-home.png` | `bin/rapid-apex e2e --profile profiles/26ai-apex241-ords24.env --destroy-after --purge-data` completed on the OCI host under `/u01/apex_demo/rapid-apex` with Database 26ai Free, APEX 24.1, ORDS 24.2.3. Browser created app `100` and opened `http://localhost:32524/ords/r/demo/rapid-apex-smoke-20260602110033/home?session=3639425266852`. Test containers, network, and lab data were purged after the run. |
 
-## Findings From S0
+## Findings From Legacy ORDS Media
 
-- ORDS `20.x` and `21.x` cannot use placeholder media names; the installer now
-  maps them to concrete downloadable zip files.
+- ORDS `21.x` cannot use placeholder media names; the installer now maps it to
+  a concrete Oracle official downloadable zip file.
 - Legacy ORDS media directories must keep only the selected `ords*.zip`; stale
   media can otherwise be picked up by Docker wildcard copies.
-- ORDS 20 prompts for optional feature bundles during `install simple`; the
-  legacy runtime now answers non-interactively.
 - Cached `apex/` directories must still receive refreshed `apex-install*`
   helper scripts before each run.
-- ORDS 20 runtime needs proxy grants for APEX/ORDS public pool users before
-  browser validation can open a generated application schema.
 
 ## Findings From S1
 
@@ -79,8 +72,7 @@ bin/rapid-apex e2e --profile <profile> --destroy-after --purge-data
 ## Findings From S2
 
 - APEX 23.1+ media should use Oracle's official
-  `https://download.oracle.com/otn_software/apex/apex_<version>.zip` URL; the
-  current OSS bucket does not contain `apex_23.2.zip`.
+  `https://download.oracle.com/otn_software/apex/apex_<version>.zip` URL.
 - Official Database/ORDS profiles must fail immediately when APEX media download
   or unzip fails; command substitution previously hid that failure.
 - Official ORDS images require `/opt/oracle/variables/conn_string.txt` with a

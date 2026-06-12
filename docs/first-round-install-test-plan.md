@@ -20,7 +20,7 @@ developer environment that is usable in a real browser.
 
 | Priority | Database | APEX | ORDS | Profile | Reason |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 18c XE | 19.1 | 19.2 | `profiles/18c-apex191-ords192.env` | Exercises the legacy path most likely to work first. |
+| P0 | 18c XE | 21.2 | 21.x | `profiles/18c-apex212-ords21.env` | Exercises the legacy path with Oracle official ORDS media. |
 | P1 | 26ai Free | 26.1 | 26 | `profiles/26ai-apex261-ords26.env` | Exercises the modern official-image target. |
 | P2 | 19c BYOL | 24.2 | 25 | `profiles/19c-apex242-ords25.env` | Exercises the common enterprise compatibility target. |
 | P3 | 26ai Enterprise BYOL | 26.1 | 26 | `profiles/26ai-ee-apex261-ords26.env` | Exercises the newest Enterprise Edition official-image target. |
@@ -55,28 +55,28 @@ The P0, P1, P2, and P3 combinations were executed on the OCI Docker host
 
 | Priority | Result |
 | --- | --- |
-| P0 | Passed. Installed 18c XE, APEX 19.1, ORDS 19.2; browser login, app creation, app login/run, smoke, logs, status, and destroy were verified. |
+| P0 | Superseded by the current 18c XE, APEX 21.2, ORDS 21.x profile because older ORDS media is no longer in the supported catalog. |
 | P1 | Passed. Installed 26ai Free, APEX 26.1, ORDS 26; browser workspace login, browser app creation, app login/run, status, smoke, and destroy were verified. |
 | P2 | Passed. Installed 19c BYOL, APEX 24.2, ORDS 25; browser workspace login, browser app creation, app login/run, status, logs, smoke, and destroy were verified. |
 | P3 | Passed. Installed 26ai Enterprise, APEX 26.1, ORDS 26.1.1; browser workspace login, app creation, app login/run, smoke, and cleanup were verified through scripted e2e. |
 
-### P0: 18c XE / APEX 19.1 / ORDS 19.2
+### P0: 18c XE / APEX 21.2 / ORDS 21.x
 
 | Check | Result |
 | --- | --- |
 | `bash -n` script syntax checks | Passed |
 | `tests/test_version_matrix.sh` | Passed |
 | `tests/test_rapid_apex_cli.sh` | Passed |
-| `bin/rapid-apex preflight --profile profiles/18c-apex191-ords192.env` | Passed |
-| `bin/rapid-apex install --profile profiles/18c-apex191-ords192.env` | Installed 18c XE, APEX 19.1, demo workspace, and ORDS 19.2 |
-| `bin/rapid-apex status --profile profiles/18c-apex191-ords192.env` | DB and ORDS containers healthy |
-| `bin/rapid-apex logs --profile profiles/18c-apex191-ords192.env` | Passed; returned DB and ORDS logs |
-| `bin/rapid-apex smoke --profile profiles/18c-apex191-ords192.env` | Passed with HTTP 302 from `/ords/` |
+| `bin/rapid-apex preflight --profile profiles/18c-apex212-ords21.env` | Passed in later validation |
+| `bin/rapid-apex install --profile profiles/18c-apex212-ords21.env` | Installed 18c XE, APEX 21.2, demo workspace, and ORDS 21.4.2 |
+| `bin/rapid-apex status --profile profiles/18c-apex212-ords21.env` | DB and ORDS containers healthy |
+| `bin/rapid-apex logs --profile profiles/18c-apex212-ords21.env` | Passed; returned DB and ORDS logs |
+| `bin/rapid-apex smoke --profile profiles/18c-apex212-ords21.env` | Passed with HTTP 302 from `/ords/` |
 | Browser workspace login | Passed with workspace `demo`, user `demo` |
 | Browser app creation | Passed; created `Application 100 - Rapid Apex Smoke 20260531` |
 | Browser app login/run | Passed; app login accepted `demo/demo` and rendered Home |
-| Scripted `bin/rapid-apex e2e --profile profiles/18c-apex191-ords192.env --destroy-after --purge-data` | Passed on 2026-06-01 after strict traditional `f?p` browser validation; created app `100` and rendered runtime Home as `demo` |
-| `bin/rapid-apex destroy --profile profiles/18c-apex191-ords192.env` | Passed; removed generated DB and ORDS containers and network |
+| Scripted `bin/rapid-apex e2e --profile profiles/18c-apex212-ords21.env --destroy-after --purge-data` | Passed in second-round validation; created app `100` and rendered runtime Home as `demo` |
+| `bin/rapid-apex destroy --profile profiles/18c-apex212-ords21.env` | Passed; removed generated DB and ORDS containers and network |
 
 Evidence screenshots from the local Chrome run:
 
@@ -86,9 +86,9 @@ Evidence screenshots from the local Chrome run:
 - `/tmp/rapid-apex-create-app-after-submit.png`
 - `/tmp/rapid-apex-run-app-100.png`
 - Scripted browser evidence directory:
-  `/home/opc/rapid-apex-codex/.rapid-apex/evidence/apex191-xe18c-lab/`
+  `/tmp/rapid-apex-evidence/s1-pass-final/`
 - Scripted e2e app run final URL:
-  `http://localhost:32513/ords/demo/f?p=100:1:<session>`
+  `http://localhost:32521/ords/r/demo/<app-alias>/home?session=<session>`
 
 Notes:
 

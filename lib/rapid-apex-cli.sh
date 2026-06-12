@@ -12,7 +12,7 @@ Rapid-APEX one-stop Oracle APEX lab tool
 Usage:
   rapid-apex list-versions
   rapid-apex validate [--profile FILE] [--db VERSION] [--apex VERSION] [--ords VERSION] [--license-policy demo|byol]
-  rapid-apex plan [--profile FILE] [--db VERSION] [--apex VERSION] [--ords VERSION] [--license-policy demo|byol] [--name NAME] [--media-base URL] [--db-port PORT] [--ords-port PORT] [--db-image IMAGE] [--ords-image-tag TAG]
+  rapid-apex plan [--profile FILE] [--db VERSION] [--apex VERSION] [--ords VERSION] [--license-policy demo|byol] [--name NAME] [--db-port PORT] [--ords-port PORT] [--db-image IMAGE] [--ords-image-tag TAG]
   rapid-apex generate-profile [same options as plan] [--output FILE]
   rapid-apex info [same options as plan]
   rapid-apex preflight [same options as plan]
@@ -38,7 +38,6 @@ rapid_apex_default_config() {
   RAPID_APEX_APEX_VERSION="26.1"
   RAPID_APEX_ORDS_VERSION="26"
   RAPID_APEX_ORDS_IMAGE_TAG="${RAPID_APEX_ORDS_IMAGE_TAG:-}"
-  RAPID_APEX_MEDIA_BASE_URL="${RAPID_APEX_MEDIA_BASE_URL:-https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/}"
   RAPID_APEX_DB_PORT="1521"
   RAPID_APEX_EM_PORT="5500"
   RAPID_APEX_ORDS_PORT="8080"
@@ -128,10 +127,6 @@ rapid_apex_parse_options() {
       --name)
         RAPID_APEX_NAME="${2:-}"
         RAPID_APEX_NAME_SET="Y"
-        shift 2
-        ;;
-      --media-base)
-        RAPID_APEX_MEDIA_BASE_URL="${2:-}"
         shift 2
         ;;
       --license-policy)
@@ -245,29 +240,33 @@ rapid_apex_apex_media_file() {
 
 rapid_apex_apex_download_url() {
   case "$RAPID_APEX_APEX_VERSION" in
-    23.1|23.2|24.1|24.2|26.1)
+    5.0.4|5.1.4|18.1|18.2|19.1|19.2|20.1|20.2)
+      printf 'https://download.oracle.com/otn/java/appexpress/apex_%s.zip\n' "$RAPID_APEX_APEX_VERSION"
+      ;;
+    21.1|21.2|22.1|22.2|23.1|23.2|24.1|24.2|26.1)
       printf 'https://download.oracle.com/otn_software/apex/apex_%s.zip\n' "$RAPID_APEX_APEX_VERSION"
       ;;
     *)
-      printf '%s/%s\n' "${RAPID_APEX_MEDIA_BASE_URL%/}" "$(rapid_apex_apex_media_file)"
+      return 1
       ;;
   esac
 }
 
 rapid_apex_ords_media_file() {
   case "$RAPID_APEX_ORDS_VERSION" in
-    3.0.12) printf '%s\n' ords-3.0.12.263.15.32.zip ;;
-    18.1) printf '%s\n' ords-18.1.1.95.1251.zip ;;
-    18.2) printf '%s\n' ords-18.2.0.183.1748.zip ;;
-    18.4) printf '%s\n' ords-18.4.0.354.1002.zip ;;
-    19.2|19.2.0) printf '%s\n' ords-19.2.0.199.1647.zip ;;
-    20|20.x) printf '%s\n' ords-20.4.3.050.1904.zip ;;
     21|21.x) printf '%s\n' ords-21.4.2.062.1806.zip ;;
-    22|22.x) printf '%s\n' ords-22.x.zip ;;
-    23|23.x) printf '%s\n' ords-23.x.zip ;;
-    24|24.x) printf '%s\n' ords-24.x.zip ;;
-    25|25.x) printf '%s\n' ords-25.x.zip ;;
-    26|26.x) printf '%s\n' ords-26.x.zip ;;
+    *) return 1 ;;
+  esac
+}
+
+rapid_apex_ords_download_url() {
+  case "$(rapid_apex_ords_install_family "$RAPID_APEX_ORDS_VERSION")" in
+    legacy-simple)
+      printf 'https://download.oracle.com/otn_software/java/ords/%s\n' "$(rapid_apex_ords_media_file)"
+      ;;
+    official-oracle-image)
+      printf '%s\n' none
+      ;;
     *) return 1 ;;
   esac
 }
@@ -295,6 +294,13 @@ rapid_apex_db_official_image() {
 rapid_apex_db_fallback_media() {
   case "$RAPID_APEX_DB_VERSION" in
     18c) printf '%s\n' oracle-database-xe-18c-1.0-1.x86_64.rpm ;;
+    *) printf '%s\n' none ;;
+  esac
+}
+
+rapid_apex_db_fallback_download_url() {
+  case "$RAPID_APEX_DB_VERSION" in
+    18c) printf '%s\n' https://download.oracle.com/otn-pub/otn_software/db-express/oracle-database-xe-18c-1.0-1.x86_64.rpm ;;
     *) printf '%s\n' none ;;
   esac
 }
@@ -338,7 +344,6 @@ Database: ${RAPID_APEX_DB_VERSION} (${db_family}, $(rapid_apex_db_license_family
 APEX: ${RAPID_APEX_APEX_VERSION} ($(rapid_apex_apex_media_file))
 ORDS: ${RAPID_APEX_ORDS_VERSION} (${ords_family}, ${ords_strategy}, Java base: ${ords_java})
 License policy: ${RAPID_APEX_LICENSE_POLICY}
-Media base URL: ${RAPID_APEX_MEDIA_BASE_URL}
 
 Ports:
   Database listener: ${RAPID_APEX_DB_PORT}
@@ -350,10 +355,10 @@ Docker resources:
   Database container: ${RAPID_APEX_NAME}_db
   ORDS container: ${RAPID_APEX_NAME}_ords
   Database official image: $(rapid_apex_db_official_image)
-  Database fallback media: $(rapid_apex_db_fallback_media)
+  Database fallback media: $(rapid_apex_db_fallback_download_url)
   APEX media: $(rapid_apex_apex_download_url)
   ORDS official image: $(rapid_apex_ords_official_image)
-  ORDS media: ${RAPID_APEX_MEDIA_BASE_URL%/}/$(rapid_apex_ords_media_file)
+  ORDS media: $(rapid_apex_ords_download_url)
 
 Execution status:
   Full install execution is implemented for legacy XE and official Database/ORDS profiles.
@@ -504,7 +509,7 @@ rapid_apex_download_file() {
   done
 
   printf 'Download failed after %s attempts: %s\n' "$attempts" "$url" >&2
-  printf 'Retry the command after checking network access or provide --media-base with a reachable mirror.\n' >&2
+  printf 'Retry the command after checking access to Oracle official download hosts.\n' >&2
   return 1
 }
 
@@ -1099,8 +1104,7 @@ rapid_apex_cmd_install() {
 
   RAPID_APEX_DB_CONTAINER="${RAPID_APEX_NAME}_db" \
   RAPID_APEX_ORDS_CONTAINER="${RAPID_APEX_NAME}_ords" \
-  RAPID_APEX_MEDIA_BASE_URL="$RAPID_APEX_MEDIA_BASE_URL" \
-    "$RAPID_APEX_ROOT_DIR/install.sh" \
+  "$RAPID_APEX_ROOT_DIR/install.sh" \
       N \
       "${RAPID_APEX_NAME}_network" \
       "$(rapid_apex_db_fallback_media)" \

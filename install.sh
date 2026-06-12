@@ -23,14 +23,14 @@ db_version=${4:-'18c'}
 db_sys_pwd=${5:-'oracle'}
 db_port=${6:-31521}
 em_port=${7:-35500}
-apex_file_name=${8:-'apex_19.1.zip'}
-apex_version=${9:-'19.1'}
+apex_file_name=${8:-'apex_21.2.zip'}
+apex_version=${9:-'21.2'}
 apex_admin_username=${10:-'ADMIN'}
 apex_admin_pwd=${11:-'Welc0me@1'}
 apex_admin_email=${12:-'wfgdlut@gmail.com'}
-ords_file_name=${13:-'ords-19.2.0.199.1647.zip'}
-ords_version=${14:-'19.2.0'}
-ords_port=${15:-32513}
+ords_file_name=${13:-'ords-21.4.2.062.1806.zip'}
+ords_version=${14:-'21'}
+ords_port=${15:-32521}
 ip_address=${16:-'localhost'}
 db_container_name=${RAPID_APEX_DB_CONTAINER:-oracle-xe}
 ords_container_name=${RAPID_APEX_ORDS_CONTAINER:-oracle-ords}
@@ -38,7 +38,6 @@ ords_container_name=${RAPID_APEX_ORDS_CONTAINER:-oracle-ords}
 url_check=""
 fileName=""
 docker_prefix='rapid-apex'
-oss_url="${RAPID_APEX_MEDIA_BASE_URL:-https://oracle-apex-bucket.s3.ap-northeast-1.amazonaws.com/}"
 
 if command -v rapid_apex_validate_versions >/dev/null 2>&1; then
   rapid_apex_validate_versions "$db_version" "$apex_version" "$ords_version"
@@ -67,10 +66,10 @@ function httpRequest()
     unset url_check
 
     #curl request
-    info=`curl -s -m 10 --connect-timeout 10 -I $1`
+    info=`curl -s -L -m 10 --connect-timeout 10 -I $1`
 
     #get return code
-    code=`echo $info|grep "HTTP"|awk '{print $2}'`
+    code=`echo "$info"|grep "HTTP"|awk '{code=$2} END {print code}'`
     #check return code
     if [ "$code" != "200" ];then
       echo ">>> $1 cannot be touched..."
@@ -78,6 +77,50 @@ function httpRequest()
     fi
 }
 
+function official_media_url()
+{
+  local file_name=$1
+  local apex_version_from_file
+
+  case "$file_name" in
+    apex_*.zip)
+      apex_version_from_file=${file_name#apex_}
+      apex_version_from_file=${apex_version_from_file%.zip}
+      case "$apex_version_from_file" in
+        5.0.4|5.1.4|18.1|18.2|19.1|19.2|20.1|20.2)
+          printf 'https://download.oracle.com/otn/java/appexpress/%s\n' "$file_name"
+          ;;
+        21.1|21.2|22.1|22.2|23.1|23.2|24.1|24.2|26.1)
+          printf 'https://download.oracle.com/otn_software/apex/%s\n' "$file_name"
+          ;;
+        *)
+          return 1
+          ;;
+      esac
+      ;;
+    ords-21.4.2.062.1806.zip)
+      printf 'https://download.oracle.com/otn_software/java/ords/%s\n' "$file_name"
+      ;;
+    oracle-database-xe-18c-1.0-1.x86_64.rpm)
+      printf 'https://download.oracle.com/otn-pub/otn_software/db-express/%s\n' "$file_name"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+function is_oracle_download_url()
+{
+  case "$1" in
+    https://download.oracle.com/*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
 
 
 # download installation file
@@ -85,6 +128,7 @@ function download()
 {
   fileUrl=$1
   fileName=""
+  officialUrl=""
   echo "fileUrl=$fileUrl"
 
   if [[ $1 =~ "/" ]]; then
@@ -93,28 +137,37 @@ function download()
       echo ">>> copy installation file to files folder"
       fileName=${fileUrl##*"/"}
       cp $fileUrl .
-    else
-      # download from url user provided
-      echo ">>> download installation file from the url user provided"
+    elif [[ $fileUrl =~ ^https?:// ]]; then
+      if ! is_oracle_download_url "$fileUrl"; then
+        echo ">>> refusing non-Oracle installation media URL: $fileUrl"
+        exit 2
+      fi
+      echo ">>> download installation file from Oracle official URL"
       httpRequest "$fileUrl"
       if [ "$url_check" = "N" ]; then
         fileName=""
         exit;
       else
         fileName=${fileUrl##*"/"}
-        curl -o $fileName $fileUrl
+        curl --fail --location -o $fileName $fileUrl
       fi
+    else
+      echo ">>> relative media paths are not supported; use an absolute local path or Oracle official URL"
+      exit 2
     fi;
   else
-    # try to download installation file from default repository
     fileName=$fileUrl
-    echo ">>> download $fileName from $oss_url"
+    if ! officialUrl="$(official_media_url "$fileName")"; then
+      echo ">>> no Oracle official media URL is known for $fileName"
+      exit 2
+    fi
+    echo ">>> download $fileName from Oracle official URL"
     if [ ! -f $fileName ]; then
-      httpRequest "$oss_url$fileName"
+      httpRequest "$officialUrl"
       if [ "$url_check" = "N" ]; then
         exit;
       else
-        curl -o $fileName $oss_url$fileName
+        curl --fail --location -o $fileName $officialUrl
       fi
     fi
   fi;

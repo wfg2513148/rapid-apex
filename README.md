@@ -66,7 +66,7 @@ Current version catalog supports:
 
 - **Oracle Database:** XE 18c, 19c Enterprise, 26ai Free, 26ai Enterprise
 - **Oracle APEX:** 26.1, 24.2, 24.1, 23.2, 23.1, 22.2, 22.1, 21.2, 21.1, 20.2, 20.1, 19.2, 19.1, 18.2, 18.1, 5.1.4, 5.0.4
-- **Oracle ORDS:** 26.x, 25.x, 24.x, 23.x, 22.x, 21.x, 20.x, 19.2, 18.4, 18.2, 18.1, 3.0.12
+- **Oracle ORDS:** 26.x, 25.x, 24.x, 23.x, 22.x, 21.x
 
 The legacy XE 18c flow is still supported, and modern Database/ORDS profiles use
 explicit official-image installer paths. See
@@ -166,7 +166,7 @@ tag for that ORDS major.
 Enterprise Database image plans can also be overridden with `--db-image IMAGE`
 when Oracle publishes a different authorized tag for the selected major version.
 
-Full execution is currently enabled for the legacy 18c XE + ORDS 3/18/19/20/21
+Full execution is currently enabled for the legacy 18c XE + ORDS 21
 family and for modern official Database + ORDS image profiles. Legacy and
 official-image installs create a `demo` workspace and `demo` developer account
 with password `demo` for browser-based validation.
@@ -175,7 +175,7 @@ Validated real-install profiles include:
 
 | Database | APEX | ORDS | Profile |
 | --- | --- | --- | --- |
-| 18c XE | 5.1.4, 18.2, 19.1, 20.2, 21.2 | 3.0.12, 18.4, 19.2, 20.x, 21.x | `profiles/18c-*` |
+| 18c XE | 21.2 | 21.x | `profiles/18c-*` |
 | 26ai Free | 22.2, 23.2, 24.1, 26.1 | 22.x, 23.x, 24.x, 26.x | `profiles/26ai-*` |
 | 19c Enterprise BYOL | 22.1, 23.1, 24.2 | 23.x, 24.x, 25.x | `profiles/19c-*` |
 | 26ai Enterprise BYOL | 26.1 | 26.x | `profiles/26ai-ee-*` |
@@ -203,7 +203,7 @@ For a legacy 18c XE lab:
 bin/rapid-apex generate-profile \
   --db 18c \
   --apex 19.1 \
-  --ords 19.2 \
+  --ords 21 \
   --output profiles/my-18c-lab.env
 ```
 
@@ -258,7 +258,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
   non-default ports to avoid common local Oracle listeners, but callers can
   override them with `--db-port`, `--em-port`, and `--ords-port`.
 - Oracle installation media must be reachable from Oracle's public download
-  host or the configured `--media-base` mirror.
+  host. Rapid-APEX does not default to third-party mirrors for Oracle media.
 
 ## Troubleshooting
 
@@ -267,7 +267,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 | Automatic tool setup cannot be completed | The host does not expose a supported package manager/service starter, or the current user cannot install/start required tools such as Docker. | Install or start the reported tool with host-appropriate privileges, then rerun `bin/rapid-apex preflight --profile <profile>`. |
 | Enterprise image is not reachable | Oracle Registry login or BYOL terms acceptance is missing. | Run `docker login container-registry.oracle.com`, accept the required image terms, then rerun preflight. |
 | ORDS image is not reachable | The pinned ORDS tag may not exist in the registry for that major version. | Use `--ords-image-tag TAG` with an Oracle-published tag and rerun preflight. |
-| Media download fails | Network access or the configured media mirror is unavailable. | Retry after checking connectivity, or use `--media-base URL` for a reachable mirror. Downloads retry automatically before failing. |
+| Media download fails | Network access to Oracle official download hosts is unavailable. | Retry after checking connectivity to `download.oracle.com`. Downloads retry automatically before failing. |
 | Port preflight fails | Another process or container owns the selected port. Ports owned by the current Rapid-APEX lab are accepted and reported as already bound by the current lab container. | Read the owner shown by preflight. If it is another process or a different lab, choose different ports or stop the conflicting lab. |
 | Install stops partway through | Containers, network, or generated data may remain. | Run `bin/rapid-apex recover --profile <profile> --purge-data` to clean only the selected lab. |
 | Destroy/recover fails | Container-owned data or a Docker resource could not be removed. | Review the residual resource report, stop remaining containers, then rerun recover or remove the listed data path with appropriate permissions. |
@@ -303,7 +303,7 @@ For a legacy XE 18c lab:
 bin/rapid-apex generate-profile \
   --db 18c \
   --apex 19.1 \
-  --ords 19.2 \
+  --ords 21 \
   --output profiles/my-18c-lab.env
 ```
 

@@ -25,10 +25,6 @@ for apex_version in \
 done
 
 for ords_version in \
-  3.0.12 \
-  18.1 18.2 18.4 \
-  19.2 19.2.0 \
-  20 20.x \
   21 21.x \
   22 22.x \
   23 23.x \
@@ -75,5 +71,12 @@ if rapid_apex_validate_versions 19c 24.2 27 >/dev/null 2>&1; then
   echo "expected unsupported ORDS version to fail" >&2
   exit 1
 fi
+
+for unsupported_ords_version in 3.0.12 18.1 18.2 18.4 19.2 19.2.0 20 20.x; do
+  if rapid_apex_validate_versions 18c 21.2 "$unsupported_ords_version" >/dev/null 2>&1; then
+    echo "expected ORDS $unsupported_ords_version to be removed from supported versions" >&2
+    exit 1
+  fi
+done
 
 echo "version matrix guard passed"
