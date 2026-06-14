@@ -110,6 +110,13 @@ bin/rapid-apex destroy --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex recover --profile profiles/26ai-apex261-ords26.env
 ```
 
+## AI Skill Package
+
+This repository includes a Codex-compatible skill at
+`skills/rapid-apex/`. Use it when an AI agent needs repo-specific guidance for
+Rapid-APEX planning, profile validation, install/e2e workflows, troubleshooting,
+documentation updates, CI checks, or release publishing.
+
 ### Workflow At A Glance
 
 ```mermaid

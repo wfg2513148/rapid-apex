@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rapid-APEX"
+  short_description: "Run and maintain Rapid-APEX labs"
+  default_prompt: "Use $rapid-apex to plan and validate a reproducible Oracle APEX lab."

@@ -73,6 +73,12 @@ bin/rapid-apex destroy --profile profiles/26ai-apex261-ords26.env
 bin/rapid-apex recover --profile profiles/26ai-apex261-ords26.env
 ```
 
+# AI Skill 封装
+
+本仓库内置 Codex 兼容 skill：`skills/rapid-apex/`。当 AI agent 需要处理
+Rapid-APEX 的规划、profile 校验、安装/e2e 链路、故障排查、文档更新、CI
+检查或发版发布时，优先使用这个 skill 中的仓库专用流程。
+
 # 工作链路图示
 
 ```mermaid

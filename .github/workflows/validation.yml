@@ -35,6 +35,9 @@ jobs:
       - name: Validate documentation install workflow
         run: bash tests/test_docs_install_workflow.sh
 
+      - name: Validate skill package
+        run: bash tests/test_skill_package.sh
+
   shellcheck:
     name: ShellCheck modern scripts
     runs-on: ubuntu-latest
@@ -54,7 +57,8 @@ jobs:
             tests/test_version_matrix.sh \
             tests/test_rapid_apex_cli.sh \
             tests/test_profile_matrix.sh \
-            tests/test_docs_install_workflow.sh
+            tests/test_docs_install_workflow.sh \
+            tests/test_skill_package.sh
 
   dockerfile-lint:
     name: Dockerfile lint

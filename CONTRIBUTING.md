@@ -41,6 +41,7 @@ bash tests/test_version_matrix.sh
 bash tests/test_rapid_apex_cli.sh
 bash tests/test_profile_matrix.sh
 bash tests/test_docs_install_workflow.sh
+bash tests/test_skill_package.sh
 ```
 
 If available locally, also run:
