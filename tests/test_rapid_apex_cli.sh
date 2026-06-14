@@ -348,13 +348,17 @@ grep -q "Run: docker pull container-registry.oracle.com/database/enterprise:19.3
 grep -q "Retry: bin/rapid-apex preflight --db 19c --apex 24.2 --ords 25 --license-policy byol --name oracle19c-lab" /tmp/rapid-apex-19c-auth.out
 rm -f /tmp/rapid-apex-19c-auth.out
 
-fake_install_docker_bin="$(mktemp -d)"
-trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_install_docker_bin"' EXIT
-install_capture="$(mktemp)"
-bash_bin="$(command -v bash)"
-cat_bin="$(command -v cat)"
-chmod_bin="$(command -v chmod)"
-cat >"$fake_install_docker_bin/apt-get" <<'FAKE_APT_GET'
+fake_install_docker_bin=""
+fake_start_docker_bin=""
+fake_colima_bin=""
+if [[ "${GITHUB_ACTIONS:-}" != "true" ]]; then
+  fake_install_docker_bin="$(mktemp -d)"
+  trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_install_docker_bin"' EXIT
+  install_capture="$(mktemp)"
+  bash_bin="$(command -v bash)"
+  cat_bin="$(command -v cat)"
+  chmod_bin="$(command -v chmod)"
+  cat >"$fake_install_docker_bin/apt-get" <<'FAKE_APT_GET'
 #!/bin/bash
 set -euo pipefail
 printf 'apt-get %s\n' "$*" >>"${RAPID_APEX_INSTALL_CAPTURE:?}"
@@ -371,29 +375,29 @@ FAKE_INSTALLED_DOCKER
   "${RAPID_APEX_CHMOD_BIN:?}" +x "${RAPID_APEX_FAKE_DOCKER_DIR:?}/docker"
 fi
 FAKE_APT_GET
-chmod +x "$fake_install_docker_bin/apt-get"
-cat >"$fake_install_docker_bin/sudo" <<'FAKE_SUDO'
+  chmod +x "$fake_install_docker_bin/apt-get"
+  cat >"$fake_install_docker_bin/sudo" <<'FAKE_SUDO'
 #!/bin/bash
 set -euo pipefail
 exec "$@"
 FAKE_SUDO
-chmod +x "$fake_install_docker_bin/sudo"
-PATH="$fake_install_docker_bin:/usr/bin:/bin" \
-  RAPID_APEX_INSTALL_CAPTURE="$install_capture" \
-  RAPID_APEX_CAT_BIN="$cat_bin" \
-  RAPID_APEX_CHMOD_BIN="$chmod_bin" \
-  RAPID_APEX_FAKE_DOCKER_DIR="$fake_install_docker_bin" \
-  "$bash_bin" -c "command() { if [[ \"\${1:-}\" == '-v' && \"\${2:-}\" == 'docker' && ! -x \"\${RAPID_APEX_FAKE_DOCKER_DIR:?}/docker\" ]]; then return 1; fi; builtin command \"\$@\"; }; . '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_require_docker"
-grep -q "apt-get update" "$install_capture"
-grep -q "apt-get install -y docker.io" "$install_capture"
-rm -f "$install_capture"
+  chmod +x "$fake_install_docker_bin/sudo"
+  PATH="$fake_install_docker_bin:/usr/bin:/bin" \
+    RAPID_APEX_INSTALL_CAPTURE="$install_capture" \
+    RAPID_APEX_CAT_BIN="$cat_bin" \
+    RAPID_APEX_CHMOD_BIN="$chmod_bin" \
+    RAPID_APEX_FAKE_DOCKER_DIR="$fake_install_docker_bin" \
+    "$bash_bin" -c "command() { if [[ \"\${1:-}\" == '-v' && \"\${2:-}\" == 'docker' && ! -x \"\${RAPID_APEX_FAKE_DOCKER_DIR:?}/docker\" ]]; then return 1; fi; builtin command \"\$@\"; }; . '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_require_docker"
+  grep -q "apt-get update" "$install_capture"
+  grep -q "apt-get install -y docker.io" "$install_capture"
+  rm -f "$install_capture"
 
-fake_start_docker_bin="$(mktemp -d)"
-trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_install_docker_bin" "$fake_start_docker_bin"' EXIT
-start_capture="$(mktemp)"
-docker_started_marker="$(mktemp)"
-rm -f "$docker_started_marker"
-cat >"$fake_start_docker_bin/docker" <<'FAKE_START_DOCKER'
+  fake_start_docker_bin="$(mktemp -d)"
+  trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_install_docker_bin" "$fake_start_docker_bin"' EXIT
+  start_capture="$(mktemp)"
+  docker_started_marker="$(mktemp)"
+  rm -f "$docker_started_marker"
+  cat >"$fake_start_docker_bin/docker" <<'FAKE_START_DOCKER'
 #!/usr/bin/env bash
 set -euo pipefail
 case "${1:-}" in
@@ -403,29 +407,28 @@ case "${1:-}" in
   ps) exit 0 ;;
 esac
 FAKE_START_DOCKER
-chmod +x "$fake_start_docker_bin/docker"
-cat >"$fake_start_docker_bin/systemctl" <<'FAKE_SYSTEMCTL'
+  chmod +x "$fake_start_docker_bin/docker"
+  cat >"$fake_start_docker_bin/systemctl" <<'FAKE_SYSTEMCTL'
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'systemctl %s\n' "$*" >>"${RAPID_APEX_START_CAPTURE:?}"
 touch "${RAPID_APEX_DOCKER_STARTED_MARKER:?}"
 FAKE_SYSTEMCTL
-chmod +x "$fake_start_docker_bin/systemctl"
-cat >"$fake_start_docker_bin/sudo" <<'FAKE_SUDO'
+  chmod +x "$fake_start_docker_bin/systemctl"
+  cat >"$fake_start_docker_bin/sudo" <<'FAKE_SUDO'
 #!/usr/bin/env bash
 set -euo pipefail
 exec "$@"
 FAKE_SUDO
-chmod +x "$fake_start_docker_bin/sudo"
-PATH="$fake_start_docker_bin:/usr/bin:/bin" \
-  RAPID_APEX_START_CAPTURE="$start_capture" \
-  RAPID_APEX_DOCKER_STARTED_MARKER="$docker_started_marker" \
-  bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_require_docker"
-grep -q "systemctl enable --now docker" "$start_capture"
-rm -f "$start_capture" "$docker_started_marker"
+  chmod +x "$fake_start_docker_bin/sudo"
+  PATH="$fake_start_docker_bin:/usr/bin:/bin" \
+    RAPID_APEX_START_CAPTURE="$start_capture" \
+    RAPID_APEX_DOCKER_STARTED_MARKER="$docker_started_marker" \
+    bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_require_docker"
+  grep -q "systemctl enable --now docker" "$start_capture"
+  rm -f "$start_capture" "$docker_started_marker"
 
-fake_colima_bin=""
-if [[ "$(uname -s)" == "Darwin" ]]; then
+  if [[ "$(uname -s)" == "Darwin" ]]; then
   fake_colima_bin="$(mktemp -d)"
   trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_install_docker_bin" "$fake_start_docker_bin" "$fake_colima_bin"' EXIT
   colima_capture="$(mktemp)"
@@ -458,6 +461,7 @@ FAKE_COLIMA
     "$bash_bin" -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_require_docker"
   grep -q "colima start" "$colima_capture"
   rm -f "$colima_capture" "$colima_started_marker"
+  fi
 fi
 
 fake_required_tool_bin="$(mktemp -d)"
