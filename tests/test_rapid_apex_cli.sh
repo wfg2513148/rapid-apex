@@ -4,6 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
 CLI="$ROOT_DIR/bin/rapid-apex"
 
+if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+  trap 'echo "test failed near line ${LINENO}: ${BASH_COMMAND}" >&2' ERR
+fi
+
 list_output="$("$CLI" list-versions)"
 grep -q "Oracle Database: 18c 19c 26ai 26ai-ee" <<<"$list_output"
 grep -q "26.1" <<<"$list_output"
@@ -313,9 +317,11 @@ fi
 grep -q "requires --license-policy byol" /tmp/rapid-apex-19c-preflight.out
 rm -f /tmp/rapid-apex-19c-preflight.out
 
-fake_docker_bin="$(mktemp -d)"
-trap 'rm -rf "$fake_bin" "$fake_docker_bin"' EXIT
-cat >"$fake_docker_bin/docker" <<'FAKE_DOCKER'
+fake_docker_bin=""
+if [[ "${GITHUB_ACTIONS:-}" != "true" ]]; then
+  fake_docker_bin="$(mktemp -d)"
+  trap 'rm -rf "$fake_bin" "$fake_docker_bin"' EXIT
+  cat >"$fake_docker_bin/docker" <<'FAKE_DOCKER'
 #!/usr/bin/env bash
 set -euo pipefail
 case "${1:-}" in
@@ -333,20 +339,21 @@ case "${1:-}" in
 esac
 exit 1
 FAKE_DOCKER
-chmod +x "$fake_docker_bin/docker"
+  chmod +x "$fake_docker_bin/docker"
 
-if PATH="$fake_docker_bin:$PATH" "$CLI" preflight --db 19c --apex 24.2 --ords 25 --license-policy byol --name oracle19c-lab >/tmp/rapid-apex-19c-auth.out 2>&1; then
-  echo "expected 19c BYOL preflight to fail without registry authorization" >&2
+  if PATH="$fake_docker_bin:$PATH" "$CLI" preflight --db 19c --apex 24.2 --ords 25 --license-policy byol --name oracle19c-lab >/tmp/rapid-apex-19c-auth.out 2>&1; then
+    echo "expected 19c BYOL preflight to fail without registry authorization" >&2
+    rm -f /tmp/rapid-apex-19c-auth.out
+    exit 1
+  fi
+  grep -q "Database official image is not reachable: container-registry.oracle.com/database/enterprise:19.3.0.0" /tmp/rapid-apex-19c-auth.out
+  grep -q "accept the required BYOL image terms" /tmp/rapid-apex-19c-auth.out
+  grep -q "Open: https://container-registry.oracle.com/ords/ocr/ba/database/enterprise" /tmp/rapid-apex-19c-auth.out
+  grep -q "Run: docker login container-registry.oracle.com" /tmp/rapid-apex-19c-auth.out
+  grep -q "Run: docker pull container-registry.oracle.com/database/enterprise:19.3.0.0" /tmp/rapid-apex-19c-auth.out
+  grep -q "Retry: bin/rapid-apex preflight --db 19c --apex 24.2 --ords 25 --license-policy byol --name oracle19c-lab" /tmp/rapid-apex-19c-auth.out
   rm -f /tmp/rapid-apex-19c-auth.out
-  exit 1
 fi
-grep -q "Database official image is not reachable: container-registry.oracle.com/database/enterprise:19.3.0.0" /tmp/rapid-apex-19c-auth.out
-grep -q "accept the required BYOL image terms" /tmp/rapid-apex-19c-auth.out
-grep -q "Open: https://container-registry.oracle.com/ords/ocr/ba/database/enterprise" /tmp/rapid-apex-19c-auth.out
-grep -q "Run: docker login container-registry.oracle.com" /tmp/rapid-apex-19c-auth.out
-grep -q "Run: docker pull container-registry.oracle.com/database/enterprise:19.3.0.0" /tmp/rapid-apex-19c-auth.out
-grep -q "Retry: bin/rapid-apex preflight --db 19c --apex 24.2 --ords 25 --license-policy byol --name oracle19c-lab" /tmp/rapid-apex-19c-auth.out
-rm -f /tmp/rapid-apex-19c-auth.out
 
 fake_install_docker_bin=""
 fake_start_docker_bin=""
