@@ -488,6 +488,12 @@ FAKE_REQUIRED_TOOL
 fi
 FAKE_REQUIRED_APT_GET
 chmod +x "$fake_required_tool_bin/apt-get"
+cat >"$fake_required_tool_bin/sudo" <<'FAKE_REQUIRED_SUDO'
+#!/bin/bash
+set -euo pipefail
+exec "$@"
+FAKE_REQUIRED_SUDO
+chmod +x "$fake_required_tool_bin/sudo"
 RAPID_APEX_REQUIRED_TOOL_CAPTURE="$required_tool_capture" \
   RAPID_APEX_FAKE_TOOL_DIR="$fake_required_tool_bin" \
   RAPID_APEX_FAKE_TOOL_NAME="curl" \
