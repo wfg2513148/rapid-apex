@@ -351,13 +351,16 @@ rm -f /tmp/rapid-apex-19c-auth.out
 fake_install_docker_bin="$(mktemp -d)"
 trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_install_docker_bin"' EXIT
 install_capture="$(mktemp)"
+bash_bin="$(command -v bash)"
+cat_bin="$(command -v cat)"
+chmod_bin="$(command -v chmod)"
 cat >"$fake_install_docker_bin/apt-get" <<'FAKE_APT_GET'
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 printf 'apt-get %s\n' "$*" >>"${RAPID_APEX_INSTALL_CAPTURE:?}"
 if [[ " $* " == *" install "* ]]; then
-  cat >"${RAPID_APEX_FAKE_DOCKER_DIR:?}/docker" <<'FAKE_INSTALLED_DOCKER'
-#!/usr/bin/env bash
+  "${RAPID_APEX_CAT_BIN:?}" >"${RAPID_APEX_FAKE_DOCKER_DIR:?}/docker" <<'FAKE_INSTALLED_DOCKER'
+#!/bin/bash
 set -euo pipefail
 case "${1:-}" in
   info) exit 0 ;;
@@ -365,20 +368,22 @@ case "${1:-}" in
 esac
 exit 0
 FAKE_INSTALLED_DOCKER
-  chmod +x "${RAPID_APEX_FAKE_DOCKER_DIR:?}/docker"
+  "${RAPID_APEX_CHMOD_BIN:?}" +x "${RAPID_APEX_FAKE_DOCKER_DIR:?}/docker"
 fi
 FAKE_APT_GET
 chmod +x "$fake_install_docker_bin/apt-get"
 cat >"$fake_install_docker_bin/sudo" <<'FAKE_SUDO'
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 exec "$@"
 FAKE_SUDO
 chmod +x "$fake_install_docker_bin/sudo"
 PATH="$fake_install_docker_bin:/usr/bin:/bin" \
   RAPID_APEX_INSTALL_CAPTURE="$install_capture" \
+  RAPID_APEX_CAT_BIN="$cat_bin" \
+  RAPID_APEX_CHMOD_BIN="$chmod_bin" \
   RAPID_APEX_FAKE_DOCKER_DIR="$fake_install_docker_bin" \
-  bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_require_docker"
+  "$bash_bin" -c "command() { if [[ \"\${1:-}\" == '-v' && \"\${2:-}\" == 'docker' && ! -x \"\${RAPID_APEX_FAKE_DOCKER_DIR:?}/docker\" ]]; then return 1; fi; builtin command \"\$@\"; }; . '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_require_docker"
 grep -q "apt-get update" "$install_capture"
 grep -q "apt-get install -y docker.io" "$install_capture"
 rm -f "$install_capture"
