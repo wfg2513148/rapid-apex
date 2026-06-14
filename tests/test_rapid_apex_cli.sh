@@ -450,7 +450,7 @@ chmod +x "$fake_colima_bin/colima"
 PATH="$fake_colima_bin:/usr/bin:/bin" \
   RAPID_APEX_COLIMA_CAPTURE="$colima_capture" \
   RAPID_APEX_COLIMA_STARTED_MARKER="$colima_started_marker" \
-  bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_require_docker"
+  "$bash_bin" -c "command() { if [[ \"\${1:-}\" == '-v' ]]; then case \"\${2:-}\" in systemctl|service|open) return 1 ;; esac; fi; builtin command \"\$@\"; }; . '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_require_docker"
 grep -q "colima start" "$colima_capture"
 rm -f "$colima_capture" "$colima_started_marker"
 
