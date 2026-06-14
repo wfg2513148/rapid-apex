@@ -491,7 +491,7 @@ chmod +x "$fake_required_tool_bin/apt-get"
 RAPID_APEX_REQUIRED_TOOL_CAPTURE="$required_tool_capture" \
   RAPID_APEX_FAKE_TOOL_DIR="$fake_required_tool_bin" \
   RAPID_APEX_FAKE_TOOL_NAME="curl" \
-  /bin/bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; PATH='$fake_required_tool_bin:/bin'; rapid_apex_require_command curl curl"
+  /bin/bash -c "command() { if [[ \"\${1:-}\" == '-v' && \"\${2:-}\" == 'curl' && ! -x \"\${RAPID_APEX_FAKE_TOOL_DIR:?}/curl\" ]]; then return 1; fi; builtin command \"\$@\"; }; . '$ROOT_DIR/lib/rapid-apex-cli.sh'; PATH='$fake_required_tool_bin:/bin'; rapid_apex_require_command curl curl"
 grep -q "apt-get update" "$required_tool_capture"
 grep -q "apt-get install -y curl" "$required_tool_capture"
 rm -f "$required_tool_capture"
