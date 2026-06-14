@@ -424,6 +424,7 @@ PATH="$fake_start_docker_bin:/usr/bin:/bin" \
 grep -q "systemctl enable --now docker" "$start_capture"
 rm -f "$start_capture" "$docker_started_marker"
 
+fake_colima_bin=""
 if [[ "$(uname -s)" == "Darwin" ]]; then
   fake_colima_bin="$(mktemp -d)"
   trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_install_docker_bin" "$fake_start_docker_bin" "$fake_colima_bin"' EXIT
