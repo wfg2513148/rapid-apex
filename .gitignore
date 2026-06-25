@@ -6,3 +6,11 @@ docker-xe/files/*
 !docker-xe/files/.gitkeep
 docker-ords/files/*
 !docker-ords/files/.gitkeep
+
+# Local APEX/bootstrap agent artifacts
+.apex-bootstrap-project.json
+.conn.json
+ai-context.json
+context.md
+export/
+tools/apex_ai.sh

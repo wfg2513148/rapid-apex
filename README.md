@@ -2,17 +2,22 @@
 
 [English](https://github.com/wfg2513148/rapid-apex) | [中文](https://github.com/wfg2513148/rapid-apex/blob/master/CN.md)
 
-Rapid-APEX is an MIT-licensed open-source toolkit for quickly provisioning reproducible Oracle Database, Oracle APEX, and ORDS environments with Docker.
+Rapid-APEX is an MIT-licensed toolkit for creating disposable Oracle Database,
+Oracle APEX, and ORDS labs with Docker.
 
-It is designed for Oracle APEX developers, trainers, consultants, and maintainers who need disposable test environments across different APEX and ORDS versions for learning, demos, upgrade testing, troubleshooting, and extension development.
+Use it when you need a local APEX environment for learning, demos, upgrade
+testing, troubleshooting, training, or extension development. The repository
+ships a CLI, reusable version profiles, validation checks, and cleanup helpers
+so you do not have to assemble the Database/APEX/ORDS stack by hand.
 
 > Project status: Rapid-APEX is in v1.2.x stabilization. New environments are
 > created through the `bin/rapid-apex` CLI and reusable profiles.
 
-## Quick Start: One-Command Deployment
+## Start Here
 
-The fastest supported path is the CLI e2e command. It provisions the lab,
-checks the result, and writes validation evidence:
+For a first run, use the bundled 26ai/APEX 26.1/ORDS 26 profile. The command
+below downloads this repository archive, creates the lab, verifies it, and
+writes evidence under `.rapid-apex/evidence/`.
 
 ```bash
 mkdir -p rapid-apex-bootstrap
@@ -21,17 +26,24 @@ curl -fsSL https://codeload.github.com/wfg2513148/rapid-apex/tar.gz/refs/heads/m
 bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
 ```
 
-If you already downloaded the repository, run only:
+Already have the repository? Run only the last command:
 
 ```bash
 bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
 ```
 
-This profile installs an Oracle Database 26ai Free, Oracle APEX 26.1, and ORDS
-26.x lab. The `e2e` command runs preflight checks, automatically tries to
-install or start Docker when needed, installs the lab, checks container status,
-runs HTTP smoke validation and browser validation, and writes an evidence
-summary under `.rapid-apex/evidence/<lab-name>/`.
+This single `e2e` command is the recommended beginner path:
+
+1. Checks Docker, ports, disk space, Oracle image access, and required tools.
+2. Tries to install or start Docker when the host supports automatic setup.
+3. Creates the selected Oracle Database, APEX, and ORDS lab.
+4. Runs container status checks, HTTP smoke validation, and browser validation.
+5. Writes an `e2e-summary.json` evidence file for later review.
+
+Before you run it, expect a large Docker-based install. You need network access
+to Oracle download and registry hosts, enough local disk space for Oracle
+images and lab data, and permission to start Docker. Enterprise Edition
+profiles also require your own Oracle license and registry terms acceptance.
 
 When the command finishes, use the `APEX access` block printed by `info`,
 `status`, or `e2e`. For the bundled `profiles/26ai-apex261-ords26.env`
@@ -44,8 +56,8 @@ http://localhost:32514/ords/
 Log in with workspace `demo`, username `demo`, and password `demo`.
 
 If the lab containers are already running, rerunning `e2e` reuses them for
-validation instead of reinstalling. To inspect the current environment without
-Docker status checks or browser validation, use:
+validation instead of reinstalling. To print the selected URL, ports, container
+names, and credentials without checking Docker status, use:
 
 ```bash
 bin/rapid-apex info --profile profiles/26ai-apex261-ords26.env
@@ -59,6 +71,19 @@ Add `--destroy-after` only when the lab should be stopped after validation. Add
 Setting up Oracle Database, Oracle APEX, and ORDS manually can be time-consuming and error-prone, especially when developers need to compare versions, reproduce issues, or prepare temporary training environments.
 
 Rapid-APEX provides a reproducible Docker-based workflow so developers can focus on building and validating APEX applications instead of repeatedly assembling infrastructure by hand.
+
+## What You Get
+
+| Need | Command |
+| --- | --- |
+| See supported versions | `bin/rapid-apex list-versions` |
+| Check whether a profile is valid | `bin/rapid-apex validate --profile <profile>` |
+| Preview the images, ports, and lab name | `bin/rapid-apex plan --profile <profile>` |
+| Check Docker, registry access, disk, and ports | `bin/rapid-apex preflight --profile <profile>` |
+| Install the lab | `bin/rapid-apex install --profile <profile>` |
+| Verify a running lab | `bin/rapid-apex smoke --profile <profile>` |
+| Run full install plus verification | `bin/rapid-apex e2e --profile <profile>` |
+| Clean one lab | `bin/rapid-apex recover --profile <profile> --purge-data` |
 
 ## Supported Product List
 

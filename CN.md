@@ -2,11 +2,19 @@
 
 
 
-> [Oracle APEX](https://apex.oracle.com/zh-cn/) 的安装过程比较繁琐，涉及 Oracle Database、APEX、ORDS、Docker 镜像、端口和安装介质等多项配置。Rapid-APEX 现在通过仓库内的 `bin/rapid-apex` CLI 和可复用 profile 来创建可重复的 APEX 测试环境。
+Rapid-APEX 是一个用 Docker 快速创建 Oracle Database、Oracle APEX 和 ORDS
+临时实验环境的开源工具。
 
-# 一键安装部署
+如果你只是想学习 APEX、做演示、验证升级兼容性、排查问题或准备培训环境，
+不需要手工拼装 Database/APEX/ORDS。仓库内置 `bin/rapid-apex` CLI、可复用
+profile、安装前检查、验证命令和清理命令，让整个流程更接近“一条命令创建、
+一条命令验收、按 lab 清理”。
 
-最快的工作链路是直接运行 CLI 的 `e2e` 命令。它会完成安装部署、状态检查、HTTP smoke、浏览器验证，并输出验证证据：
+# 从这里开始
+
+第一次使用时，建议直接使用仓库自带的 26ai/APEX 26.1/ORDS 26 profile。
+下面的命令会下载仓库归档、创建 lab、完成验证，并把证据写入
+`.rapid-apex/evidence/`：
 
 ```bash
 mkdir -p rapid-apex-bootstrap
@@ -15,13 +23,24 @@ curl -fsSL https://codeload.github.com/wfg2513148/rapid-apex/tar.gz/refs/heads/m
 bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
 ```
 
-如果已经下载了仓库，只需要执行：
+如果已经下载了仓库，只需要执行最后一条命令：
 
 ```bash
 bin/rapid-apex e2e --profile profiles/26ai-apex261-ords26.env
 ```
 
-这个 profile 会部署 Oracle Database 26ai Free、Oracle APEX 26.1 和 ORDS 26.x。`e2e` 会在需要时自动尝试安装或启动 Docker，然后执行安装、状态检查、HTTP smoke、浏览器验证，并把验证证据写入 `.rapid-apex/evidence/<lab-name>/`。
+这条 `e2e` 命令是最适合新手的完整链路：
+
+1. 检查 Docker、端口、磁盘空间、Oracle 镜像访问和必需工具。
+2. 如果主机支持，自动尝试安装或启动 Docker。
+3. 创建所选 Oracle Database、APEX 和 ORDS lab。
+4. 执行容器状态检查、HTTP smoke 验证和浏览器验证。
+5. 生成 `e2e-summary.json`，方便之后复盘安装结果。
+
+运行前先有一个预期：这是一个较大的 Docker 安装流程。主机需要能访问
+Oracle 下载和镜像仓库，需要有足够磁盘空间保存 Oracle 镜像和 lab 数据，
+并且当前用户要能启动 Docker。Enterprise Edition profile 还需要你自己
+具备 Oracle 授权，并在 Oracle Container Registry 接受对应条款。
 
 命令完成后，看 `info`、`status` 或 `e2e` 输出里的 `APEX access` 信息。仓库自带的 `profiles/26ai-apex261-ords26.env` 默认 APEX Builder 入口是：
 
@@ -37,7 +56,7 @@ Username: demo
 Password: demo
 ```
 
-如果 lab 容器已经在运行，再次执行 `e2e` 会复用当前环境做验证，不会重新安装。只想查看当前环境和入口、且不需要检查 Docker 容器状态时，执行：
+如果 lab 容器已经在运行，再次执行 `e2e` 会复用当前环境做验证，不会重新安装。只想打印 URL、端口、容器名和登录信息，且不需要检查 Docker 状态时，执行：
 
 ```bash
 bin/rapid-apex info --profile profiles/26ai-apex261-ords26.env
@@ -51,6 +70,19 @@ bin/rapid-apex info --profile profiles/26ai-apex261-ords26.env
 > - **Oracle ORDS:** 26.x, 25.x, 24.x, 23.x, 22.x, 21.x
 >
 > 当前真实执行链路支持 legacy 18c XE + ORDS 21 组合，以及现代 Database + ORDS 官方镜像 profiles。
+
+# 你可以用它做什么
+
+| 需求 | 命令 |
+| --- | --- |
+| 查看支持的版本 | `bin/rapid-apex list-versions` |
+| 校验 profile 是否可用 | `bin/rapid-apex validate --profile <profile>` |
+| 预览镜像、端口和 lab 名称 | `bin/rapid-apex plan --profile <profile>` |
+| 检查 Docker、镜像访问、磁盘和端口 | `bin/rapid-apex preflight --profile <profile>` |
+| 安装 lab | `bin/rapid-apex install --profile <profile>` |
+| 验证运行中的 lab | `bin/rapid-apex smoke --profile <profile>` |
+| 一次性完成安装和验证 | `bin/rapid-apex e2e --profile <profile>` |
+| 清理一个 lab | `bin/rapid-apex recover --profile <profile> --purge-data` |
 
 # 常用 CLI 命令
 

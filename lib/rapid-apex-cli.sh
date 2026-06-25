@@ -209,8 +209,44 @@ rapid_apex_parse_options() {
   done
 }
 
+rapid_apex_validate_lab_name() {
+  local name="$1"
+
+  if [[ -z "$name" ]] ||
+     (( ${#name} > 63 )) ||
+     [[ "$name" == *..* ]] ||
+     [[ ! "$name" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]]; then
+    printf 'Invalid lab name: %s\n' "$name" >&2
+    printf 'Use 1-63 letters, numbers, dots, underscores, or hyphens; start with a letter or number and avoid "..".\n' >&2
+    return 2
+  fi
+}
+
+rapid_apex_validate_port() {
+  local label="$1"
+  local port="$2"
+  local port_number
+
+  if [[ ! "$port" =~ ^[0-9]{1,5}$ ]]; then
+    printf 'Invalid %s port: %s\n' "$label" "$port" >&2
+    printf 'Ports must be numeric values from 1 to 65535.\n' >&2
+    return 2
+  fi
+
+  port_number=$((10#$port))
+  if (( port_number < 1 || port_number > 65535 )); then
+    printf 'Invalid %s port: %s\n' "$label" "$port" >&2
+    printf 'Ports must be numeric values from 1 to 65535.\n' >&2
+    return 2
+  fi
+}
+
 rapid_apex_validate_config() {
   rapid_apex_validate_versions "$RAPID_APEX_DB_VERSION" "$RAPID_APEX_APEX_VERSION" "$RAPID_APEX_ORDS_VERSION"
+  rapid_apex_validate_lab_name "$RAPID_APEX_NAME"
+  rapid_apex_validate_port "Database listener" "$RAPID_APEX_DB_PORT"
+  rapid_apex_validate_port "EM Express" "$RAPID_APEX_EM_PORT"
+  rapid_apex_validate_port "ORDS HTTP" "$RAPID_APEX_ORDS_PORT"
 
   case "$RAPID_APEX_LICENSE_POLICY" in
     demo)

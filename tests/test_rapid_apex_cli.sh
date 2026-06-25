@@ -17,6 +17,30 @@ validate_output="$("$CLI" validate --db 26ai --apex 26.1 --ords 26 --name codex-
 grep -q "Rapid-APEX profile is valid" <<<"$validate_output"
 grep -q "db=26ai apex=26.1 ords=26 name=codex-lab" <<<"$validate_output"
 
+if "$CLI" validate --db 26ai --apex 26.1 --ords 26 --name 'bad;name' >/tmp/rapid-apex-bad-name.out 2>&1; then
+  echo "expected unsafe lab name to be rejected" >&2
+  rm -f /tmp/rapid-apex-bad-name.out
+  exit 1
+fi
+grep -q "Invalid lab name" /tmp/rapid-apex-bad-name.out
+rm -f /tmp/rapid-apex-bad-name.out
+
+if "$CLI" validate --db 26ai --apex 26.1 --ords 26 --ords-port not-a-port >/tmp/rapid-apex-bad-port.out 2>&1; then
+  echo "expected non-numeric port to be rejected" >&2
+  rm -f /tmp/rapid-apex-bad-port.out
+  exit 1
+fi
+grep -q "Invalid ORDS HTTP port" /tmp/rapid-apex-bad-port.out
+rm -f /tmp/rapid-apex-bad-port.out
+
+if "$CLI" validate --db 26ai --apex 26.1 --ords 26 --db-port 70000 >/tmp/rapid-apex-high-port.out 2>&1; then
+  echo "expected out-of-range port to be rejected" >&2
+  rm -f /tmp/rapid-apex-high-port.out
+  exit 1
+fi
+grep -q "Invalid Database listener port" /tmp/rapid-apex-high-port.out
+rm -f /tmp/rapid-apex-high-port.out
+
 plan_output="$("$CLI" plan --db 26ai --apex 26.1 --ords 26 --name codex-lab)"
 grep -q "Name: codex-lab" <<<"$plan_output"
 grep -q "Database: 26ai (oracle-free-container, free, official-oracle-image)" <<<"$plan_output"
