@@ -289,20 +289,39 @@ docker run -d \
 # wait until database configuration is done
 rm -f xe_installation.log
 wait_seconds=0
+legacy_ready_pattern="Completed: ALTER PLUGGABLE DATABASE|Pluggable database .* opened read write|DATABASE IS READY TO USE"
+legacy_progress_pattern="DBCA progress|Starting Oracle|Configuring Oracle|DATABASE IS READY TO USE|Completed: ALTER PLUGGABLE DATABASE|Pluggable database .* opened read write"
+echo ">>> waiting up to ${legacy_db_timeout_seconds}s for oracle-xe configuration; first startup can take several minutes."
 while : ; do
-    db_health=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' $db_container_name 2>/dev/null || true)
+    db_state=$(docker inspect --format '{{.State.Status}}' "$db_container_name" 2>/dev/null || true)
+    db_health=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$db_container_name" 2>/dev/null || true)
+    if [ -z "$db_health" ]; then
+      db_health=$db_state
+    fi
+    if [ "$db_state" = "exited" ] || [ "$db_state" = "dead" ]; then
+      echo "oracle-xe container stopped before configuration completed." >&2
+      docker logs --tail 120 "$db_container_name" >&2 || true
+      exit 1
+    fi
     if [ "$db_health" = "healthy" ]; then
       echo ">>> oracle-xe container is healthy."
       break
     fi
-    docker logs $db_container_name > xe_installation.log 2>&1 || true
-    [[ `grep -Ei "Completed: ALTER PLUGGABLE DATABASE|Pluggable database .* opened read write|DATABASE IS READY TO USE" xe_installation.log` ]] && break
+    docker logs "$db_container_name" > xe_installation.log 2>&1 || true
+    if grep -Eiq "$legacy_ready_pattern" xe_installation.log; then
+      echo ">>> oracle-xe configuration log reports database ready."
+      break
+    fi
     if [ "$wait_seconds" -ge "$legacy_db_timeout_seconds" ]; then
       echo "Timed out waiting for oracle-xe configuration." >&2
-      docker logs --tail 120 $db_container_name >&2 || true
+      docker logs --tail 120 "$db_container_name" >&2 || true
       exit 1
     fi
-    echo "wait until oracle-xe configuration is done..."
+    echo "waiting for oracle-xe configuration (${wait_seconds}s/${legacy_db_timeout_seconds}s, state=${db_state:-unknown}, health=${db_health:-unknown})..."
+    safe_progress=$(grep -Ei "$legacy_progress_pattern" xe_installation.log | tail -n 8 || true)
+    if [ -n "$safe_progress" ]; then
+      echo "$safe_progress" | sed 's/^/  recent: /'
+    fi
     sleep 10
     wait_seconds=$((wait_seconds + 10))
 done
