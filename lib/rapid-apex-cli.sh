@@ -572,6 +572,27 @@ rapid_apex_download_file() {
   return 1
 }
 
+rapid_apex_validate_zip_media() {
+  local media_file="$1"
+  local label="$2"
+  local test_output
+
+  rapid_apex_require_command unzip unzip
+
+  if [[ ! -s "$media_file" ]]; then
+    printf '%s is empty or missing: %s\n' "$label" "$media_file" >&2
+    return 1
+  fi
+
+  if ! test_output="$(unzip -tq "$media_file" 2>&1)"; then
+    printf '%s is not a valid zip archive: %s\n' "$label" "$media_file" >&2
+    printf '%s\n' "$test_output" >&2
+    printf 'Oracle archive downloads may require accepting the license agreement in a browser.\n' >&2
+    printf 'Download the authorized zip manually, place it at this path, or rerun install.sh with an absolute local media path.\n' >&2
+    return 1
+  fi
+}
+
 rapid_apex_pull_image_if_needed() {
   local image="$1"
 
@@ -598,7 +619,7 @@ rapid_apex_prepare_apex_home() {
   if [[ ! -f "$apex_home/apxsilentins.sql" ]]; then
     rm -rf "$lab_dir/apex-src" "$apex_home"
     rapid_apex_download_file "$(rapid_apex_apex_download_url)" "$media_file"
-    rapid_apex_require_command unzip unzip
+    rapid_apex_validate_zip_media "$media_file" "APEX installation media"
     mkdir -p "$lab_dir/apex-src"
     unzip -oq "$media_file" -d "$lab_dir/apex-src"
     if [[ ! -d "$lab_dir/apex-src/apex" ]]; then

@@ -194,6 +194,26 @@ function keep_only_selected_ords_media()
   done
 }
 
+function validate_zip_media()
+{
+  local media_file=$1
+  local label=$2
+  local test_output
+
+  if [ ! -s "$media_file" ]; then
+    echo "$label is empty or missing: $media_file" >&2
+    exit 1
+  fi
+
+  if ! test_output=$(unzip -tq "$media_file" 2>&1); then
+    echo "$label is not a valid zip archive: $media_file" >&2
+    echo "$test_output" >&2
+    echo "Oracle archive downloads may require accepting the license agreement in a browser." >&2
+    echo "Download the authorized zip manually, place it at this path, or rerun install.sh with an absolute local media path." >&2
+    exit 1
+  fi
+}
+
 
 
 
@@ -201,6 +221,7 @@ function keep_only_selected_ords_media()
 cd $work_path/docker-xe/files
 download $apex_file_name
 apex_file_name=$fileName
+validate_zip_media "$apex_file_name" "APEX installation media"
 
 echo ">>> apex_file_name="$apex_file_name
 echo ""
@@ -209,6 +230,7 @@ echo ""
 cd $work_path/docker-ords/files
 download $ords_file_name
 ords_file_name=$fileName
+validate_zip_media "$ords_file_name" "ORDS installation media"
 keep_only_selected_ords_media "$ords_file_name"
 
 echo ">>> ords_file_name="$ords_file_name

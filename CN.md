@@ -240,6 +240,7 @@ bin/rapid-apex recover --profile profiles/my-26ai-lab.env --purge-data
 | Enterprise 镜像不可访问 | 缺少 Oracle Registry 登录或 BYOL 镜像条款确认。 | 打开 `https://container-registry.oracle.com/ords/ocr/ba/database/enterprise`，登录并接受条款，然后执行 `docker login container-registry.oracle.com` 和 `docker pull <preflight 输出的镜像>`，最后重跑 preflight 输出里的命令。 |
 | ORDS 镜像不可访问 | 当前固定 ORDS tag 可能不存在。 | 使用 Oracle 已发布的 tag 通过 `--ords-image-tag TAG` 覆盖后重跑 preflight。 |
 | 安装介质下载失败 | 无法访问 Oracle 官方下载地址。 | 检查到 `download.oracle.com` 的网络后重试；下载失败会自动重试。 |
+| 安装介质不是有效 zip | Oracle archive 下载可能被重定向到许可或登录页面，而不是返回 APEX/ORDS zip。 | 在浏览器中打开 Oracle 下载页，接受许可并下载授权 zip，然后放到报错提示的 media path，或用本地绝对路径重新运行 `install.sh`。 |
 | 端口 preflight 失败 | 其他进程或容器占用了所选端口。当前 Rapid-APEX lab 自己占用的端口会被识别为已由当前 lab 容器绑定，不会再报冲突。 | 查看 preflight 输出的占用来源；如果是其他进程或其他 lab，换端口或停止冲突 lab。 |
 | 安装中途停止 | 可能残留容器、network 或生成的数据目录。 | 运行 `bin/rapid-apex recover --profile <profile> --purge-data`，只清理当前 lab。 |
 | destroy/recover 失败 | 容器归属数据或 Docker 资源无法删除。 | 查看残留资源报告，停止剩余容器后重跑 recover，或用合适权限删除列出的数据路径。 |

@@ -583,6 +583,25 @@ grep -q "ok" "$retry_target"
 grep -q "2" "$retry_count_file"
 rm -f "$retry_count_file" "$retry_target"
 
+fake_bad_zip_bin="$(mktemp -d)"
+bad_zip_target="$(mktemp)"
+bad_zip_output="$(mktemp)"
+printf '<html>license required</html>\n' >"$bad_zip_target"
+cat >"$fake_bad_zip_bin/unzip" <<'FAKE_BAD_ZIP_UNZIP'
+#!/usr/bin/env bash
+printf 'End-of-central-directory signature not found\n' >&2
+exit 9
+FAKE_BAD_ZIP_UNZIP
+chmod +x "$fake_bad_zip_bin/unzip"
+if PATH="$fake_bad_zip_bin:$PATH" bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh'; rapid_apex_validate_zip_media '$bad_zip_target' 'APEX installation media'" >"$bad_zip_output" 2>&1; then
+  echo "expected invalid APEX media to be rejected" >&2
+  exit 1
+fi
+grep -q "APEX installation media is not a valid zip archive" "$bad_zip_output"
+grep -q "Oracle archive downloads may require accepting the license agreement" "$bad_zip_output"
+rm -rf "$fake_bad_zip_bin"
+rm -f "$bad_zip_target" "$bad_zip_output"
+
 fake_proxy_bin="$(mktemp -d)"
 trap 'rm -rf "$fake_bin" "$fake_docker_bin" "$fake_local_image_bin" "$fake_retry_bin" "$fake_proxy_bin"' EXIT
 proxy_args_capture="$(mktemp)"
