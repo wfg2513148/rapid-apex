@@ -1646,6 +1646,7 @@ rapid_apex_cmd_e2e() {
   rapid_apex_parse_options "$@"
   rapid_apex_validate_config
   summary_path="$(rapid_apex_e2e_summary_path)"
+  browser_output=""
 
   if [[ "$RAPID_APEX_DRY_RUN" == "Y" ]]; then
     printf 'Rapid-APEX e2e plan\n'
