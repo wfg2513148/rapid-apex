@@ -255,6 +255,24 @@ if grep -Eq "ORACLE_PWD=oracle|ORACLE_USER_PWD=oracle|sys/oracle" \
   echo "official Database/ORDS flow must not use the weak oracle admin password" >&2
   exit 1
 fi
+PATH="$fake_official_bin:$PATH" \
+  RAPID_APEX_OFFICIAL_DOCKER_CAPTURE="$official_docker_capture" \
+  bash -c ". '$ROOT_DIR/lib/rapid-apex-cli.sh';
+    rapid_apex_pull_image_if_needed() { :; };
+    rapid_apex_wait_for_health() { :; };
+    rapid_apex_prepare_apex_home() { mkdir -p \"\$1/apex\"; printf '%s\n' \"\$1/apex\"; };
+    rapid_apex_wait_for_http() { :; };
+    rapid_apex_default_config;
+    RAPID_APEX_ROOT_DIR='$fake_official_root';
+    rapid_apex_parse_options --db 26ai --apex 22.2 --ords 22 --name strong-legacy-password-lab;
+    rapid_apex_install_official_db_ords"
+legacy_ords_run="$(grep 'strong-legacy-password-lab_ords' "$official_docker_capture")"
+grep -q -- "-e ORACLE_PWD=RapidApex1" <<<"$legacy_ords_run"
+grep -q -- "-e APEX_PWD=RapidApex1" <<<"$legacy_ords_run"
+if grep -q -- "ORACLE_USER_PWD=" <<<"$legacy_ords_run"; then
+  echo "ORDS 22 official-image flow must not pass ORACLE_USER_PWD without ORACLE_USER_NAME" >&2
+  exit 1
+fi
 rm -rf "$fake_official_bin" "$fake_official_root"
 rm -f "$official_docker_capture"
 

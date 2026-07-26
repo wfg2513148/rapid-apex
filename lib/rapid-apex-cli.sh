@@ -799,7 +799,6 @@ rapid_apex_install_official_db_ords() {
     -e DBPORT=1521 \
     -e DBSERVICENAME="$db_service" \
     -e ORACLE_PWD="$db_admin_password" \
-    -e ORACLE_USER_PWD="$db_admin_password" \
     -e APEX_PWD="$db_admin_password" \
     -e APEX_VER="${RAPID_APEX_APEX_VERSION}.0" \
     -e DEMO_WORKSPACE_NAME=demo \
